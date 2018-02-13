@@ -1,0 +1,21 @@
+{
+  "name": "bmulsig",
+  "version": "0.0.1",
+  "description": "Bcoin wallet multisig plugin",
+  "main": "./lib/bmulsig",
+  "engines": {
+    "node": ">=7.6.0"
+  },
+  "scripts": {
+    "test": "mocha --reporter spec test/*-test.js"
+  },
+  "keywords": [
+    "bcoin",
+    "bitcoin",
+    "blockchain",
+    "wallet",
+    "multisig"
+  ],
+  "author": "bcoin",
+  "license": "MIT"
+}
