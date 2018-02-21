@@ -41,7 +41,7 @@ const walletNode = new wallet.Node({
   nodeApiKey: options.apiKey,
   adminToken: ADMIN_TOKEN,
 
-  plugins: [require('../lib/bmulsig')]
+  plugins: [require('../lib/bmultisig')]
 });
 
 walletNode.on('error', err => console.error('Wallet', err));
@@ -74,7 +74,7 @@ describe('HTTP', function () {
     await client.close();
   });
 
-  it('Get mulsig plugin info', async () => {
+  it('Get multisig plugin info', async () => {
     const info = await client.getInfo();
 
     assert(info, 'Get info should return results');

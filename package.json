@@ -1,8 +1,8 @@
 {
-  "name": "bmulsig",
+  "name": "bmultisig",
   "version": "0.0.1",
-  "description": "Bcoin wallet multisig plugin",
-  "main": "./lib/bmulsig",
+  "description": "Bcoin wallet plugin for multi signature transaction proposals",
+  "main": "./lib/bmultisig",
   "engines": {
     "node": ">=7.6.0"
   },
@@ -23,6 +23,8 @@
     "bclient": "0.0.1",
     "bcoin": "git+https://github.com/bcoin-org/bcoin.git#wallet-rewrite",
     "bcrypto": "^0.1.0",
+    "bdb": "0.0.2",
+    "blgr": "0.0.1",
     "bstring": "0.0.1",
     "bval": "0.0.1",
     "bweb": "0.0.1"

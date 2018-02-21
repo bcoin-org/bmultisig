@@ -1,11 +1,11 @@
-# bmulsig
+# bmultisig
 
-bmulsig is a [bcoin][bcoin] plugin which adds multisig wallet paths and events to bwallet, for payment proposals.
+bmultisig is a [bcoin][bcoin] plugin which adds multisig wallet paths and events to bwallet, for payment proposals.
 
 ## Usage
 
 ``` bash
-$ bwallet --plugins bmulsig
+$ bwallet --plugins bmultisig
 ```
 
 ## Contribution and License Agreement
