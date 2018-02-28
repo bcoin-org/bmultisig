@@ -8,7 +8,10 @@
   },
   "scripts": {
     "lint": "eslint lib/ test/ || exit 0",
-    "test": "mocha --reporter spec test/*-test.js"
+    "test": "mocha --reporter spec test/*-test.js",
+    "docs": "jsdoc -c jsdoc.json",
+    "cover": "istanbul cover node_modules/.bin/_mocha  -- --reporter spec test/*-test.js",
+    "clean": "rm -rf coverage && rm -rf docs"
   },
   "keywords": [
     "bcoin",
@@ -32,6 +35,8 @@
   },
   "devDependencies": {
     "eslint": "^4.17.0",
+    "istanbul": "^1.1.0-alpha.1",
+    "jsdoc": "^3.5.5",
     "mocha": "^5.0.1"
   }
 }
