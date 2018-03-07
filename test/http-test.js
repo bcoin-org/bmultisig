@@ -8,9 +8,10 @@ const bcoin = require('bcoin');
 const {FullNode} = bcoin;
 const {wallet} = bcoin;
 const {Network} = bcoin;
+const {hd} = bcoin;
 
-const pkg = require('../package.json');
-const Client = require('../lib/client');
+const MultisigClient = require('../lib/client');
+const {WalletClient} = require('bclient');
 
 const NETWORK_NAME = 'regtest';
 const API_KEY = 'foo';
@@ -44,9 +45,6 @@ const walletNode = new wallet.Node({
   plugins: [require('../lib/bmultisig')]
 });
 
-walletNode.on('error', err => console.error('Wallet', err));
-fullNode.on('error', err => console.error('FullNode', err));
-
 describe('HTTP', function () {
   before(async () => {
     await fullNode.open();
@@ -58,28 +56,83 @@ describe('HTTP', function () {
     await fullNode.close();
   });
 
-  let client;
+  let multisigClient, walletClient;
 
   beforeEach(async () => {
-    client = new Client({
+    multisigClient = new MultisigClient({
       port: network.walletPort,
       apiKey: API_KEY,
-      adminToken: ADMIN_TOKEN
+      token: ADMIN_TOKEN
     });
 
-    await client.open();
+    walletClient = new WalletClient({
+      port: network.walletPort,
+      apiKey: API_KEY,
+      token: ADMIN_TOKEN
+    });
+
+    await multisigClient.open();
   });
 
   afterEach(async () => {
-    await client.close();
+    await multisigClient.close();
   });
 
-  it('Get multisig plugin info', async () => {
-    const info = await client.getInfo();
+  it('should create multisig wallet', async () => {
+    const id = 'test';
+    const xpub = hd.PrivateKey.generate().xpubkey(network);
+    const wallet = await multisigClient.createWallet(id, {
+      m: 1,
+      n: 3,
+      xpub: xpub,
+      cosignerName: 'cosigner1'
+    });
 
-    assert(info, 'Get info should return results');
-    assert.strictEqual(info.version, pkg.version,
-      'Plugin version was not correct'
-    );
+    const multisigWallets = await multisigClient.getWallets();
+    const wallets = await walletClient.getWallets();
+
+    assert.strictEqual(wallet.wid, 1);
+    assert.strictEqual(wallet.id, id);
+    assert.strictEqual(wallet.cosigners.length, 1);
+
+    const cosigner = wallet.cosigners[0];
+    assert.strictEqual(cosigner.name, 'cosigner1');
+    assert.strictEqual(cosigner.path, '');
+
+    assert(Array.isArray(multisigWallets));
+    assert.strictEqual(multisigWallets.length, 1);
+    assert.deepEqual(multisigWallets, [id]);
+
+    assert(Array.isArray(wallets));
+    assert.strictEqual(wallets.length, 2);
+    assert.deepEqual(wallets, ['primary', id]);
+  });
+
+  it('should get multisig wallet by id', async () => {
+    const multisigWallet = await multisigClient.getInfo('test');
+
+    assert(multisigWallet, 'Can not get multisig wallet');
+    assert.strictEqual(multisigWallet.wid, 1);
+    assert.strictEqual(multisigWallet.id, 'test');
+
+    assert.strictEqual(multisigWallet.cosigners.length, 1);
+    assert.deepEqual(multisigWallet.cosigners, [{
+      name: 'cosigner1',
+      path: '',
+      tokenDepth: 0
+    }]);
+  });
+
+  it('should list multisig wallets', async () => {
+    const multisigWallets = await multisigClient.getWallets();
+    const wallets = await walletClient.getWallets();
+
+    assert(Array.isArray(wallets));
+    assert.strictEqual(wallets.length, 2);
+    assert.deepEqual(wallets, ['primary', 'test']);
+
+    assert(Array.isArray(multisigWallets));
+    assert.strictEqual(multisigWallets.length, 1);
+    assert.deepEqual(multisigWallets, ['test']);
   });
 });

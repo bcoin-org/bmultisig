@@ -7,6 +7,10 @@ const assert = require('./util/assert');
 const MultisigDB = require('../lib/multisigdb');
 const layout = require('../lib/layout');
 
+/*
+ * Most test cases are handled by http-test
+ */
+
 describe('Multisig Database', function () {
   it('should open database', async () => {
     const msdb = new MultisigDB({
