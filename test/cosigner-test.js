@@ -15,15 +15,15 @@ const TEST_MSDB = {};
 // commonly used test case
 const TEST_OPTIONS = {
   id: 5,
+  tokenDepth: 0,
   name: 'test1',
-  xpubIndex: 2,
   path: TEST_PATH
 };
 
 // its serialization
 const TEST_RAW = Buffer.from(
   '05000000' // id
-  + '02000000' // xpubIndex
+  + '00000000' // tokenDepth
   + '05' + '7465737431' // name
   + '0f' + '6d2f3434272f30272f30272f302f30' // path
 , 'hex');
@@ -44,10 +44,6 @@ describe('Cosigner', function () {
         'id was not set correctly.'
       );
 
-      assert.strictEqual(cosigner.xpubIndex, options.xpubIndex,
-        'xpubIndex was not set correctly.'
-      );
-
       assert.strictEqual(cosigner.path, options.path,
         'path was not set correctly.'
       );
@@ -60,7 +56,7 @@ describe('Cosigner', function () {
     const data = cosigner1.toRaw();
     const cosigner2 = Cosigner.fromRaw(TEST_MSDB, data);
 
-    assert.deepEqual(cosigner1, cosigner2);
+    assert.deepStrictEqual(cosigner1, cosigner2);
   });
 
   it('should serialize correctly', () => {
@@ -89,10 +85,6 @@ describe('Cosigner', function () {
 
       assert.strictEqual(cosigner.id, expected.id,
         'id was not set correctly.'
-      );
-
-      assert.strictEqual(cosigner.xpubIndex, expected.xpubIndex,
-        'xpubIndex was not set correctly.'
       );
 
       assert.strictEqual(cosigner.path, expected.path,
