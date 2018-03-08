@@ -3,7 +3,7 @@
 
 'use strict';
 
-const assert = require('assert');
+const assert = require('./util/assert');
 const bcoin = require('bcoin');
 const {FullNode} = bcoin;
 const {wallet} = bcoin;
@@ -38,6 +38,7 @@ const walletNode = new wallet.Node({
   memory: options.memory,
   workers: options.workers,
 
+  walletAuth: true,
   apiKey: options.apiKey,
   nodeApiKey: options.apiKey,
   adminToken: ADMIN_TOKEN,
@@ -108,6 +109,25 @@ describe('HTTP', function () {
     assert.deepEqual(wallets, ['primary', id]);
   });
 
+  it('should fail creating existing wallet', async () => {
+    const id = 'test';
+    const xpub = hd.PrivateKey.generate().xpubkey(network);
+
+    try {
+      await multisigClient.createWallet(id, {
+        m: 1,
+        n: 3,
+        xpub: xpub,
+        cosignerName: 'test1'
+      });
+
+      assert.fail('creating wallet with existing id must fail.');
+    } catch (err) {
+      assert.instanceOf(err, Error);
+      assert.strictEqual(err.message, 'WDB: Wallet already exists.');
+    }
+  });
+
   it('should get multisig wallet by id', async () => {
     const multisigWallet = await multisigClient.getInfo('test');
 
@@ -121,6 +141,14 @@ describe('HTTP', function () {
       path: '',
       tokenDepth: 0
     }]);
+  });
+
+  it('should return null on non existing wallet', async () => {
+    const nonMultisigWallet = await multisigClient.getInfo('primary');
+    const nowallet = await multisigClient.getInfo('nowallet');
+
+    assert.typeOf(nonMultisigWallet, 'null');
+    assert.typeOf(nowallet, 'null');
   });
 
   it('should list multisig wallets', async () => {
