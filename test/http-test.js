@@ -174,7 +174,6 @@ describe('HTTP', function () {
     const walletsAfter = await walletClient.getWallets();
 
     assert.strictEqual(removed, true, 'Could not remove wallet');
-    assert(removed);
     assert.deepEqual(multisigWalletsBefore, [id]);
     assert.deepEqual(multisigWalletsAfter, []);
     assert.deepEqual(walletsBefore, ['primary', id]);
