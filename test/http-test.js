@@ -110,21 +110,22 @@ describe('HTTP', function () {
   });
 
   it('should fail creating existing wallet', async () => {
-    const id = 'test';
     const xpub = hd.PrivateKey.generate().xpubkey(network);
 
-    try {
-      await multisigClient.createWallet(id, {
-        m: 1,
-        n: 3,
-        xpub: xpub,
-        cosignerName: 'test1'
-      });
+    for (const id of ['test', 'primary']) {
+      try {
+        await multisigClient.createWallet(id, {
+          m: 1,
+          n: 3,
+          xpub: xpub,
+          cosignerName: 'test1'
+        });
 
-      assert.fail('creating wallet with existing id must fail.');
-    } catch (err) {
-      assert.instanceOf(err, Error);
-      assert.strictEqual(err.message, 'WDB: Wallet already exists.');
+        assert.fail('creating wallet with existing id must fail.');
+      } catch (err) {
+        assert.instanceOf(err, Error);
+        assert.strictEqual(err.message, 'WDB: Wallet already exists.');
+      }
     }
   });
 
@@ -162,5 +163,29 @@ describe('HTTP', function () {
     assert(Array.isArray(multisigWallets));
     assert.strictEqual(multisigWallets.length, 1);
     assert.deepEqual(multisigWallets, ['test']);
+  });
+
+  it('should delete multisig wallet', async () => {
+    const id = 'test';
+    const multisigWalletsBefore = await multisigClient.getWallets();
+    const walletsBefore = await walletClient.getWallets();
+    const removed = await multisigClient.removeWallet(id);
+    const multisigWalletsAfter = await multisigClient.getWallets();
+    const walletsAfter = await walletClient.getWallets();
+
+    assert.strictEqual(removed, true, 'Could not remove wallet');
+    assert(removed);
+    assert.deepEqual(multisigWalletsBefore, [id]);
+    assert.deepEqual(multisigWalletsAfter, []);
+    assert.deepEqual(walletsBefore, ['primary', id]);
+    assert.deepEqual(walletsAfter, ['primary']);
+  });
+
+  it('should fail deleting non existing multisig wallet', async () => {
+    const removed = await multisigClient.removeWallet('nowallet');
+    const removedPrimary = await multisigClient.removeWallet('primary');
+
+    assert.strictEqual(removed, false, 'Removed non existing wallet');
+    assert.strictEqual(removedPrimary, false, 'Can not remove primary wallet');
   });
 });
