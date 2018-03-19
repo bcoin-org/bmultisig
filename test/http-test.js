@@ -19,6 +19,10 @@ const ADMIN_TOKEN = Buffer.alloc(32).toString('hex');
 
 const network = Network.get(NETWORK_NAME);
 
+/*
+ * Setup nodes
+ */
+
 const options = {
   network: NETWORK_NAME,
   apiKey: API_KEY,
@@ -107,26 +111,6 @@ describe('HTTP', function () {
     assert(Array.isArray(wallets));
     assert.strictEqual(wallets.length, 2);
     assert.deepEqual(wallets, ['primary', id]);
-  });
-
-  it('should fail creating existing wallet', async () => {
-    const xpub = hd.PrivateKey.generate().xpubkey(network);
-
-    for (const id of ['test', 'primary']) {
-      try {
-        await multisigClient.createWallet(id, {
-          m: 1,
-          n: 3,
-          xpub: xpub,
-          cosignerName: 'test1'
-        });
-
-        assert.fail('creating wallet with existing id must fail.');
-      } catch (err) {
-        assert.instanceOf(err, Error);
-        assert.strictEqual(err.message, 'WDB: Wallet already exists.');
-      }
-    }
   });
 
   it('should get multisig wallet by id', async () => {
