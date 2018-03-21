@@ -52,7 +52,7 @@ const walletNode = new wallet.Node({
 
 const WALLET_OPTIONS = {
   m: 1,
-  n: 3,
+  n: 2,
   id: 'test'
 };
 
@@ -69,7 +69,9 @@ describe('HTTP', function () {
     await fullNode.close();
   });
 
-  let multisigClient, walletClient;
+  let multisigClient;
+  let walletClient;
+  let cosignerToken;
 
   beforeEach(async () => {
     multisigClient = new MultisigClient({
@@ -108,7 +110,7 @@ describe('HTTP', function () {
     assert.strictEqual(wallet.id, id);
     assert.strictEqual(wallet.cosigners.length, 1);
     assert.strictEqual(wallet.m, 1);
-    assert.strictEqual(wallet.n, 3);
+    assert.strictEqual(wallet.n, 2);
 
     const cosigner = wallet.cosigners[0];
     assert.strictEqual(cosigner.name, 'cosigner1');
@@ -117,6 +119,7 @@ describe('HTTP', function () {
     assert.strictEqual(cosigner.tokenDepth, 0);
 
     joinKey = wallet.joinKey;
+    cosignerToken = cosigner.token;
 
     assert(Array.isArray(multisigWallets));
     assert.strictEqual(multisigWallets.length, 1);
@@ -143,6 +146,35 @@ describe('HTTP', function () {
     }]);
   });
 
+  it('should get multisig wallet by id - authenticated', async () => {
+    const msclient = new MultisigClient({
+      port: network.walletPort,
+      apiKey: API_KEY,
+      token: cosignerToken
+    });
+
+    const mswallet = await msclient.getInfo('test');
+
+    assert(mswallet, 'Could not get wallet.');
+  });
+
+  it('should fail getting multisig wallet - non authenticated', async () => {
+    const msclient = new MultisigClient({
+      port: network.walletPort,
+      apiKey: API_KEY
+    });
+
+    let err;
+    try {
+      await msclient.getInfo('test');
+    } catch (e) {
+      err = e;
+    }
+
+    assert(err);
+    assert.strictEqual(err.message, 'Auth failure.');
+  });
+
   it('should join multisig wallet', async () => {
     const xpub = getXPUB();
     const cosignerName = 'cosigner2';
@@ -155,7 +187,7 @@ describe('HTTP', function () {
     assert.strictEqual(mswallet.wid, 1);
     assert.strictEqual(mswallet.id, 'test');
     assert.strictEqual(mswallet.cosigners.length, 2);
-    assert.strictEqual(mswallet.initialized, false);
+    assert.strictEqual(mswallet.initialized, true);
 
     const cosigners = mswallet.cosigners;
 
