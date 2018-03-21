@@ -50,7 +50,15 @@ const walletNode = new wallet.Node({
   plugins: [require('../lib/bmultisig')]
 });
 
+const WALLET_OPTIONS = {
+  m: 1,
+  n: 3,
+  id: 'test'
+};
+
 describe('HTTP', function () {
+  let joinKey;
+
   before(async () => {
     await fullNode.open();
     await walletNode.open();
@@ -84,25 +92,31 @@ describe('HTTP', function () {
   });
 
   it('should create multisig wallet', async () => {
-    const id = 'test';
-    const xpub = hd.PrivateKey.generate().xpubkey(network);
-    const wallet = await multisigClient.createWallet(id, {
-      m: 1,
-      n: 3,
-      xpub: xpub,
-      cosignerName: 'cosigner1'
-    });
+    const xpub = getXPUB();
+    const cosignerName = 'cosigner1';
+    const id = WALLET_OPTIONS.id;
 
+    const walletOptions = Object.assign({
+      cosignerName, xpub
+    }, WALLET_OPTIONS);
+
+    const wallet = await multisigClient.createWallet(id, walletOptions);
     const multisigWallets = await multisigClient.getWallets();
     const wallets = await walletClient.getWallets();
 
     assert.strictEqual(wallet.wid, 1);
     assert.strictEqual(wallet.id, id);
     assert.strictEqual(wallet.cosigners.length, 1);
+    assert.strictEqual(wallet.m, 1);
+    assert.strictEqual(wallet.n, 3);
 
     const cosigner = wallet.cosigners[0];
     assert.strictEqual(cosigner.name, 'cosigner1');
     assert.strictEqual(cosigner.path, '');
+    assert.strictEqual(cosigner.token.length, 64);
+    assert.strictEqual(cosigner.tokenDepth, 0);
+
+    joinKey = wallet.joinKey;
 
     assert(Array.isArray(multisigWallets));
     assert.strictEqual(multisigWallets.length, 1);
@@ -116,7 +130,7 @@ describe('HTTP', function () {
   it('should get multisig wallet by id', async () => {
     const multisigWallet = await multisigClient.getInfo('test');
 
-    assert(multisigWallet, 'Can not get multisig wallet');
+    assert(multisigWallet, 'Can not get multisig wallet.');
     assert.strictEqual(multisigWallet.wid, 1);
     assert.strictEqual(multisigWallet.id, 'test');
 
@@ -124,8 +138,43 @@ describe('HTTP', function () {
     assert.deepEqual(multisigWallet.cosigners, [{
       name: 'cosigner1',
       path: '',
-      tokenDepth: 0
+      tokenDepth: 0,
+      token: null
     }]);
+  });
+
+  it('should join multisig wallet', async () => {
+    const xpub = getXPUB();
+    const cosignerName = 'cosigner2';
+
+    const mswallet = await multisigClient.join(WALLET_OPTIONS.id, {
+      cosignerName, joinKey, xpub
+    });
+
+    assert(mswallet, 'Did not return multisig wallet.');
+    assert.strictEqual(mswallet.wid, 1);
+    assert.strictEqual(mswallet.id, 'test');
+    assert.strictEqual(mswallet.cosigners.length, 2);
+    assert.strictEqual(mswallet.initialized, false);
+
+    const cosigners = mswallet.cosigners;
+
+    assert.deepStrictEqual(cosigners[0], {
+      name: 'cosigner1',
+      path: '',
+      tokenDepth: 0,
+      token: null
+    });
+
+    assert.notTypeOf(cosigners[1].token, 'null');
+
+    assert.deepStrictEqual(cosigners[1], Object.assign({
+      name: 'cosigner2',
+      path: '',
+      tokenDepth: 0
+    }, {
+      token: cosigners[1].token
+    }));
   });
 
   it('should return null on non existing wallet', async () => {
@@ -172,3 +221,13 @@ describe('HTTP', function () {
     assert.strictEqual(removedPrimary, false, 'Can not remove primary wallet');
   });
 });
+
+/*
+ * Helpers
+ */
+
+function getXPUB() {
+  return hd.PrivateKey.generate()
+    .derivePath('m/44\'/0\'/0\'')
+    .xpubkey(network);
+}

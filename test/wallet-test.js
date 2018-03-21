@@ -12,9 +12,10 @@ const {Mnemonic} = hd;
 const MultisigDB = require('../lib/multisigdb');
 const WalletNodeClient = require('../lib/walletclient');
 const MultisigWallet = require('../lib/wallet');
+const Cosigner = require('../lib/cosigner');
 
 // This path does not do much.
-const TEST_PATH = 'm/44\'/0\'/0\'/0/0';
+const TEST_XPUB_PATH = 'm/44\'/0\'/0\'';
 
 // at this point we don't use anything from MSDB
 const TEST_MSDB = {
@@ -26,11 +27,11 @@ const TEST_MSDB = {
 const TEST_ACCOUNTS = [{
   id: 0,
   name: 'test1',
-  path: TEST_PATH
+  path: TEST_XPUB_PATH
 }, {
   id: 1,
   name: 'test2',
-  path: TEST_PATH
+  path: TEST_XPUB_PATH
 }];
 
 const WALLET_OPTIONS = {
@@ -241,8 +242,138 @@ describe('MultisigWallet', function () {
 
   it('should fail deleting non existing multisig wallet', async () => {
     const removed = await msdb.remove('test');
+    const removeNonMultisig = await msdb.remove('primary');
 
     assert.strictEqual(removed, false);
+    assert.strictEqual(removeNonMultisig, false);
+  });
+
+  it('should join wallet with joinKey', async () => {
+    const xpub1b58 = getXPUB();
+    const xpub2 = getPubKey();
+    const xpub3 = getPubKey();
+
+    const options1 = {
+      cosignerName: 'cosigner1',
+      xpub: xpub1b58,
+      m: 1,
+      n: 3
+    };
+
+    const mswallet = await msdb.create(options1);
+    const cosigner2 = Cosigner.fromOptions({
+      name: 'cosigner2',
+      path: ''
+    });
+
+    const join1 = await mswallet.join(cosigner2, xpub2);
+
+    assert(join1, 'Multisig wallet was not returned.');
+    assert.strictEqual(join1.cosigners.length, 2,
+      'Number of cosigners does not match.'
+    );
+    assert.strictEqual(join1.isInitialized(), false,
+      'Wallet needs one more cosigner.'
+    );
+
+    assert.strictEqual(join1.cosigners[1].id, 1);
+    assert.notTypeOf(join1.cosigners[1].token, 'null');
+
+    const cosigner3 = Cosigner.fromOptions(msdb, {
+      name: 'cosigner3',
+      path: ''
+    });
+
+    const join2 = await mswallet.join(cosigner3, xpub3);
+
+    assert(join2, 'Multisig wallet was not returned.');
+    assert.strictEqual(join2.cosigners.length, 3,
+      'Number of cosigners does not match'
+    );
+    assert.strictEqual(join2.isInitialized(), true,
+      'Wallet was not initialized'
+    );
+    assert.strictEqual(join2.cosigners[2].id, 2);
+    assert.notTypeOf(join2.cosigners[2].token, 'null');
+    assert.strictEqual(join2.cosigners[2].name, cosigner3.name);
+  });
+
+  it('should fail joining with duplicate XPUB', async () => {
+    const xpub = getPubKey();
+    const b58 = xpub.xpubkey();
+    const xpub2 = getPubKey();
+
+    const options = Object.assign({
+      cosignerName: 'cosigner1',
+      xpub: b58,
+      m: 1,
+      n: 3
+    });
+
+    const mswallet = await msdb.create(options);
+
+    const cosigner2 = Cosigner.fromOptions(msdb, { name: 'cosigner2' });
+    await mswallet.join(cosigner2, xpub2);
+
+    const cosigner3 = Cosigner.fromOptions(msdb, { name: 'cosigner3' });
+
+    let err;
+    try {
+      await mswallet.join(cosigner3, xpub);
+    } catch (e) {
+      err = e;
+    }
+
+    assert(err);
+    assert.strictEqual(err.message, 'Cannot add own key.');
+
+    err = null;
+
+    try {
+      await mswallet.join(cosigner3, xpub2);
+    } catch (e) {
+      err = e;
+    }
+
+    assert(err);
+    assert.strictEqual(err.message, 'Can not add duplicate keys');
+  });
+
+  it('should fail joining full wallet', async () => {
+    const options = {
+      cosignerName: 'cosigner1',
+      xpub: getXPUB(),
+      m: 1,
+      n: 2
+    };
+
+    const mswallet = await msdb.create(options);
+    assert.strictEqual(mswallet.isInitialized(), false);
+
+    const cosigner1 = Cosigner.fromOptions({
+      name: 'cosigner2',
+      path: ''
+    });
+
+    const cosigner2 = Cosigner.fromOptions({
+      name: 'cosigner3',
+      path: ''
+    });
+
+    await mswallet.join(cosigner1, getPubKey());
+    assert.strictEqual(mswallet.isInitialized(), true);
+
+    let err;
+
+    try {
+      await mswallet.join(cosigner2, getPubKey());
+    } catch (e) {
+      err = e;
+    }
+
+    assert(err);
+    assert.strictEqual(err.message, 'Multisig wallet is full.');
+    assert.strictEqual(mswallet.isInitialized(), true);
   });
 });
 
@@ -260,6 +391,11 @@ function generateMaster() {
   return master;
 }
 
+function getPubKey() {
+  return hd.PrivateKey.generate()
+    .derivePath(TEST_XPUB_PATH).toPublic();
+}
+
 function getXPUB() {
-  return hd.PrivateKey.generate().xpubkey();
+  return getPubKey().xpubkey();
 }
