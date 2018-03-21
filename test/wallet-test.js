@@ -249,13 +249,13 @@ describe('MultisigWallet', function () {
   });
 
   it('should join wallet with joinKey', async () => {
-    const xpub1b58 = getXPUB();
+    const xpub1 = getPubKey();
     const xpub2 = getPubKey();
     const xpub3 = getPubKey();
 
     const options1 = {
       cosignerName: 'cosigner1',
-      xpub: xpub1b58,
+      xpub: xpub1.xpubkey(),
       m: 1,
       n: 3
     };
@@ -296,6 +296,12 @@ describe('MultisigWallet', function () {
     assert.strictEqual(join2.cosigners[2].id, 2);
     assert.notTypeOf(join2.cosigners[2].token, 'null');
     assert.strictEqual(join2.cosigners[2].name, cosigner3.name);
+
+    const account = await mswallet.wallet.getAccount(0);
+
+    assert.strictEqual(account.accountKey.equals(xpub1), true);
+    assert.strictEqual(account.keys[0].equals(xpub2), true);
+    assert.strictEqual(account.keys[1].equals(xpub3), true);
   });
 
   it('should fail joining with duplicate XPUB', async () => {
