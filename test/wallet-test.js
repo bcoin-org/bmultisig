@@ -299,9 +299,11 @@ describe('MultisigWallet', function () {
 
     const account = await mswallet.wallet.getAccount(0);
 
+    // account.keys are sorted
     assert.strictEqual(account.accountKey.equals(xpub1), true);
-    assert.strictEqual(account.keys[0].equals(xpub2), true);
-    assert.strictEqual(account.keys[1].equals(xpub3), true);
+
+    assert(account.keys.findIndex(k => k.equals(xpub2)) > -1);
+    assert(account.keys.findIndex(k => k.equals(xpub3)) > -1);
   });
 
   it('should fail joining with duplicate XPUB', async () => {
