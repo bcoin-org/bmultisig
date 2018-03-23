@@ -393,6 +393,63 @@ describe('MultisigWallet', function () {
     assert.strictEqual(err.message, 'Multisig wallet is full.');
     assert.strictEqual(mswallet.isInitialized(), true);
   });
+
+  it('should authenticate user with cosignerToken', async () => {
+    const pubkey1 = getPubKey();
+    const pubkey2 = getPubKey();
+
+    const options = Object.assign({
+      cosignerName: 'cosigner1',
+      xpub: pubkey1.xpubkey()
+    }, WALLET_OPTIONS);
+
+    const mswallet = await msdb.create(options);
+
+    const cosigner1 = Cosigner.fromOptions({ name: 'cosigner2' });
+
+    await mswallet.join(cosigner1, pubkey2);
+
+    const token1 = mswallet.cosigners[0].token;
+    const token2 = mswallet.cosigners[1].token;
+
+    const testCosigner1 = mswallet.auth(token1);
+    const testCosigner2 = mswallet.auth(token2);
+
+    assert.strictEqual(testCosigner1, mswallet.cosigners[0]);
+    assert.strictEqual(testCosigner2, mswallet.cosigners[1]);
+
+    const wrongToken = Buffer.alloc(32);
+    let err;
+
+    try {
+      mswallet.auth(wrongToken);
+    } catch (e) {
+      err = e;
+    }
+
+    assert(err);
+    assert.strictEqual(err.message, 'Authentication error.');
+  });
+
+  it('should retoken and authenticate with new cosignerToken', async () => {
+    const pubkey1 = getPubKey();
+
+    const options = Object.assign({
+      cosignerName: 'cosigner1',
+      xpub: pubkey1.xpubkey()
+    }, WALLET_OPTIONS);
+
+    const mswallet = await msdb.create(options);
+
+    const oldToken = mswallet.cosigners[0].token;
+
+    assert.strictEqual(mswallet.cosigners[0], await mswallet.auth(oldToken));
+
+    const newToken = await mswallet.retoken(0);
+
+    assert.notBufferEqual(oldToken, newToken);
+    assert.strictEqual(mswallet.cosigners[0], await mswallet.auth(newToken));
+  });
 });
 
 /*
