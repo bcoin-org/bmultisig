@@ -177,6 +177,16 @@ describe('MultisigWallet', function () {
 
     assert.deepStrictEqual(wallet, walletInfo);
     assert.deepStrictEqual(mswallet, mswalletInfo);
+
+    // clear cache and try again
+    msdb.unregister(mswallet);
+
+    const mswalletInfo2 = await msdb.get(walletOptions.id);
+
+    assert.deepStrictEqual(
+      mswalletInfo.toJSON(),
+      mswalletInfo2.toJSON()
+   );
   });
 
   it('should return null on non existing wallet', async () => {
@@ -279,7 +289,7 @@ describe('MultisigWallet', function () {
     assert.strictEqual(join1.cosigners[1].id, 1);
     assert.notTypeOf(join1.cosigners[1].token, 'null');
 
-    const cosigner3 = Cosigner.fromOptions(msdb, {
+    const cosigner3 = Cosigner.fromOptions({
       name: 'cosigner3',
       path: ''
     });
@@ -320,10 +330,10 @@ describe('MultisigWallet', function () {
 
     const mswallet = await msdb.create(options);
 
-    const cosigner2 = Cosigner.fromOptions(msdb, { name: 'cosigner2' });
+    const cosigner2 = Cosigner.fromOptions({ name: 'cosigner2' });
     await mswallet.join(cosigner2, xpub2);
 
-    const cosigner3 = Cosigner.fromOptions(msdb, { name: 'cosigner3' });
+    const cosigner3 = Cosigner.fromOptions({ name: 'cosigner3' });
 
     let err;
     try {
