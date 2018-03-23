@@ -57,8 +57,6 @@ const WALLET_OPTIONS = {
 };
 
 describe('HTTP', function () {
-  let joinKey;
-
   before(async () => {
     await fullNode.open();
     await walletNode.open();
@@ -69,18 +67,25 @@ describe('HTTP', function () {
     await fullNode.close();
   });
 
+  let adminClient;
   let multisigClient;
-  let walletClient;
-  let cosignerToken;
+  let walletAdminClient;
+  let testWalletClient;
+  let joinKey;
 
   beforeEach(async () => {
-    multisigClient = new MultisigClient({
+    adminClient = new MultisigClient({
       port: network.walletPort,
       apiKey: API_KEY,
       token: ADMIN_TOKEN
     });
 
-    walletClient = new WalletClient({
+    multisigClient = new MultisigClient({
+      port: network.walletPort,
+      apiKey: API_KEY
+    });
+
+    walletAdminClient = new WalletClient({
       port: network.walletPort,
       apiKey: API_KEY,
       token: ADMIN_TOKEN
@@ -103,8 +108,8 @@ describe('HTTP', function () {
     }, WALLET_OPTIONS);
 
     const wallet = await multisigClient.createWallet(id, walletOptions);
-    const multisigWallets = await multisigClient.getWallets();
-    const wallets = await walletClient.getWallets();
+    const multisigWallets = await adminClient.getWallets();
+    const wallets = await walletAdminClient.getWallets();
 
     assert.strictEqual(wallet.wid, 1);
     assert.strictEqual(wallet.id, id);
@@ -119,7 +124,12 @@ describe('HTTP', function () {
     assert.strictEqual(cosigner.tokenDepth, 0);
 
     joinKey = wallet.joinKey;
-    cosignerToken = cosigner.token;
+
+    testWalletClient = new MultisigClient({
+      port: network.walletPort,
+      apiKey: API_KEY,
+      token: cosigner.token
+    });
 
     assert(Array.isArray(multisigWallets));
     assert.strictEqual(multisigWallets.length, 1);
@@ -131,7 +141,7 @@ describe('HTTP', function () {
   });
 
   it('should get multisig wallet by id', async () => {
-    const multisigWallet = await multisigClient.getInfo('test');
+    const multisigWallet = await testWalletClient.getInfo('test');
 
     assert(multisigWallet, 'Can not get multisig wallet.');
     assert.strictEqual(multisigWallet.wid, 1);
@@ -144,18 +154,6 @@ describe('HTTP', function () {
       tokenDepth: 0,
       token: null
     }]);
-  });
-
-  it('should get multisig wallet by id - authenticated', async () => {
-    const msclient = new MultisigClient({
-      port: network.walletPort,
-      apiKey: API_KEY,
-      token: cosignerToken
-    });
-
-    const mswallet = await msclient.getInfo('test');
-
-    assert(mswallet, 'Could not get wallet.');
   });
 
   it('should fail getting multisig wallet - non authenticated', async () => {
@@ -172,7 +170,7 @@ describe('HTTP', function () {
     }
 
     assert(err);
-    assert.strictEqual(err.message, 'Auth failure.');
+    assert.strictEqual(err.message, 'Authentication error.');
   });
 
   it('should join multisig wallet', async () => {
@@ -218,8 +216,8 @@ describe('HTTP', function () {
   });
 
   it('should list multisig wallets', async () => {
-    const multisigWallets = await multisigClient.getWallets();
-    const wallets = await walletClient.getWallets();
+    const multisigWallets = await adminClient.getWallets();
+    const wallets = await walletAdminClient.getWallets();
 
     assert(Array.isArray(wallets));
     assert.strictEqual(wallets.length, 2);
@@ -230,13 +228,43 @@ describe('HTTP', function () {
     assert.deepEqual(multisigWallets, ['test']);
   });
 
+  it('should get wallet balance(proxy)', async () => {
+    // no auth
+    let err;
+    try {
+      await multisigClient.getBalance(
+        WALLET_OPTIONS.id,
+        'default'
+      );
+    } catch (e) {
+      err = e;
+    }
+
+    // admin
+    const balance1 = await adminClient.getBalance(
+      WALLET_OPTIONS.id,
+      'default'
+    );
+
+    // cosigner auth
+    const balance2 = await testWalletClient.getBalance(
+      WALLET_OPTIONS.id,
+      'default'
+    );
+
+    assert(err);
+    assert.strictEqual(err.message, 'Authentication error.');
+    assert(balance1);
+    assert(balance2);
+  });
+
   it('should delete multisig wallet', async () => {
     const id = 'test';
-    const multisigWalletsBefore = await multisigClient.getWallets();
-    const walletsBefore = await walletClient.getWallets();
-    const removed = await multisigClient.removeWallet(id);
-    const multisigWalletsAfter = await multisigClient.getWallets();
-    const walletsAfter = await walletClient.getWallets();
+    const multisigWalletsBefore = await adminClient.getWallets();
+    const walletsBefore = await walletAdminClient.getWallets();
+    const removed = await adminClient.removeWallet(id);
+    const multisigWalletsAfter = await adminClient.getWallets();
+    const walletsAfter = await walletAdminClient.getWallets();
 
     assert.strictEqual(removed, true, 'Could not remove wallet');
     assert.deepEqual(multisigWalletsBefore, [id]);
@@ -246,8 +274,8 @@ describe('HTTP', function () {
   });
 
   it('should fail deleting non existing multisig wallet', async () => {
-    const removed = await multisigClient.removeWallet('nowallet');
-    const removedPrimary = await multisigClient.removeWallet('primary');
+    const removed = await adminClient.removeWallet('nowallet');
+    const removedPrimary = await adminClient.removeWallet('primary');
 
     assert.strictEqual(removed, false, 'Removed non existing wallet');
     assert.strictEqual(removedPrimary, false, 'Can not remove primary wallet');
