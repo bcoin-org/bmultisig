@@ -134,22 +134,6 @@ describe('HTTP', function () {
     assert.deepEqual(wallets, ['primary', id]);
   });
 
-  it('should get multisig wallet by id', async () => {
-    const multisigWallet = await testWalletClient.getInfo('test');
-
-    assert(multisigWallet, 'Can not get multisig wallet.');
-    assert.strictEqual(multisigWallet.wid, 1);
-    assert.strictEqual(multisigWallet.id, 'test');
-
-    assert.strictEqual(multisigWallet.cosigners.length, 1);
-    assert.deepEqual(multisigWallet.cosigners, [{
-      name: 'cosigner1',
-      path: '',
-      tokenDepth: 0,
-      token: null
-    }]);
-  });
-
   it('should fail getting multisig wallet - non authenticated', async () => {
     const msclient = new MultisigClient({
       port: network.walletPort,
@@ -199,6 +183,45 @@ describe('HTTP', function () {
     }, {
       token: cosigners[1].token
     }));
+  });
+
+  it('should get multisig wallet by id', async () => {
+    const multisigWallet = await testWalletClient.getInfo('test');
+
+    assert(multisigWallet, 'Can not get multisig wallet.');
+    assert.strictEqual(multisigWallet.wid, 1);
+    assert.strictEqual(multisigWallet.id, 'test');
+
+    assert.strictEqual(multisigWallet.initialized, true);
+    assert.strictEqual(multisigWallet.cosigners.length, 2);
+    assert.deepEqual(multisigWallet.cosigners, [{
+      name: 'cosigner1',
+      path: '',
+      tokenDepth: 0,
+      token: null
+    }, {
+      name: 'cosigner2',
+      path: '',
+      tokenDepth: 0,
+      token: null
+    }]);
+
+    // with details
+    const msWalletDetails = await testWalletClient.getInfo('test', true);
+    const account = msWalletDetails.account;
+
+    assert(msWalletDetails, 'Can not get multisig wallet');
+    assert.strictEqual(msWalletDetails.wid, multisigWallet.wid);
+    assert.strictEqual(msWalletDetails.id, multisigWallet.id);
+    assert.strictEqual(msWalletDetails.initialized, true);
+
+    assert(account, 'Could not get account details');
+    assert.strictEqual(account.watchOnly, true);
+    assert.strictEqual(account.initialized, msWalletDetails.initialized);
+    assert(account.receiveAddress);
+    assert(account.changeAddress);
+    assert(account.nestedAddress);
+    assert.strictEqual(account.keys.length, msWalletDetails.n);
   });
 
   it('should return null on non existing wallet', async () => {
