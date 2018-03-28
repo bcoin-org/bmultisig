@@ -68,19 +68,19 @@ describe('MultisigWallet', function () {
       wid: 1
     }, WALLET_OPTIONS);
 
-    const mWallet = new MultisigWallet(TEST_MSDB, options);
+    const mswallet = new MultisigWallet(TEST_MSDB, options);
 
     {
       const keys = ['n', 'm', 'id', 'wid'];
 
       for (const key of keys)
-        assert.strictEqual(mWallet[key], options[key]);
+        assert.strictEqual(mswallet[key], options[key]);
     }
 
-    assert.strictEqual(mWallet.cosigners.length, 2);
+    assert.strictEqual(mswallet.cosigners.length, 2);
 
     const cosopts = TEST_ACCOUNTS;
-    const cosigners = mWallet.cosigners;
+    const cosigners = mswallet.cosigners;
     const keys = Object.keys(cosopts[0]);
 
     for (const [i, cosigner] of cosigners.entries())
@@ -93,21 +93,21 @@ describe('MultisigWallet', function () {
       cosigners: TEST_ACCOUNTS
     }, WALLET_OPTIONS);
 
-    const mWallet1 = new MultisigWallet(TEST_MSDB, options);
+    const mswallet1 = new MultisigWallet(TEST_MSDB, options);
 
     // inject properties derived from bcoin#Wallet
-    mWallet1.master = generateMaster();
-    mWallet1.joinKey = mWallet1.getJoinKey();
+    mswallet1.master = generateMaster();
+    mswallet1.joinKey = mswallet1.getJoinKey();
 
-    const data = mWallet1.toRaw();
-    const mWallet2 = MultisigWallet.fromRaw(TEST_MSDB, data);
+    const data = mswallet1.toRaw();
+    const mswallet2 = MultisigWallet.fromRaw(TEST_MSDB, data);
 
     // we don't care about wid/id
-    mWallet1.wid = 0;
-    mWallet1.id = null;
-    mWallet1.master = mWallet2.master;
+    mswallet1.wid = 0;
+    mswallet1.id = null;
+    mswallet1.master = mswallet2.master;
 
-    assert.deepStrictEqual(mWallet2, mWallet1);
+    assert.deepStrictEqual(mswallet2, mswallet1);
   });
 
   it('should create multisig wallet', async () => {
