@@ -111,11 +111,9 @@ describe('MultisigWallet', function () {
   });
 
   it('should create multisig wallet', async () => {
-    const xpub = getXPUB();
-    const mswallet = await msdb.create(Object.assign({
-      xpub,
-      cosignerName: 'cosigner1'
-    }, WALLET_OPTIONS));
+    const xpub = getPubKey();
+    const cosigner = Cosigner.fromOptions({ name: 'cosigner1' });
+    const mswallet = await msdb.create(WALLET_OPTIONS, cosigner, xpub);
 
     const wallet = mswallet.wallet;
     const account = await wallet.getAccount(0);
@@ -125,20 +123,21 @@ describe('MultisigWallet', function () {
 
     assert.strictEqual(mswallet.m, account.m);
     assert.strictEqual(mswallet.n, account.n);
-    assert.strictEqual(account.accountKey.xpubkey(), xpub);
+    assert.strictEqual(account.accountKey.xpubkey(), xpub.xpubkey());
   });
 
   it('should fail creating existing wallet', async () => {
-    await msdb.create(Object.assign({
-      cosignerName: 'cosigner1'
-    }, WALLET_OPTIONS));
+    const cosigner = new Cosigner();
+    await msdb.create(WALLET_OPTIONS, cosigner);
 
     let err;
 
     try {
-      await msdb.create(Object.assign({
-        cosignerName: 'cosigner2'
-      }, WALLET_OPTIONS));
+      const cosigner = Cosigner.fromOptions({
+        name: 'cosigner2'
+      });
+
+      await msdb.create(WALLET_OPTIONS, cosigner);
     } catch (e) {
       err = e;
     }
@@ -149,13 +148,11 @@ describe('MultisigWallet', function () {
     err = null;
 
     try {
-      await msdb.create(
-        Object.assign(
-          { cosignerName: 'cosigner2' },
-          WALLET_OPTIONS,
-          { id: 'primary' }
-        )
-      );
+      await msdb.create(Object.assign({}, WALLET_OPTIONS, {
+        id: 'primary'
+      }), Cosigner.fromOptions({
+        name: 'cosigner2'
+      }));
     } catch (e) {
       err = e;
     }
@@ -165,14 +162,11 @@ describe('MultisigWallet', function () {
   });
 
   it('should get multisig wallet', async () => {
-    const walletOptions = Object.assign({
-      cosignerName: 'cosigner1'
-    }, WALLET_OPTIONS);
-
-    const mswallet = await msdb.create(walletOptions);
+    const cosigner = Cosigner.fromOptions({ name: 'cosigner1' });
+    const mswallet = await msdb.create(WALLET_OPTIONS, cosigner);
     const wallet = mswallet.wallet;
 
-    const mswalletInfo = await msdb.get(walletOptions.id);
+    const mswalletInfo = await msdb.get(WALLET_OPTIONS.id);
     const walletInfo = mswalletInfo.wallet;
 
     assert.deepStrictEqual(wallet, walletInfo);
@@ -181,7 +175,7 @@ describe('MultisigWallet', function () {
     // clear cache and try again
     msdb.unregister(mswallet);
 
-    const mswalletInfo2 = await msdb.get(walletOptions.id);
+    const mswalletInfo2 = await msdb.get(WALLET_OPTIONS.id);
 
     assert.deepStrictEqual(
       mswalletInfo.toJSON(),
@@ -207,9 +201,7 @@ describe('MultisigWallet', function () {
     }
 
     // add wallets
-    await msdb.create(Object.assign({
-      cosignerName: 'test'
-    }, WALLET_OPTIONS));
+    await msdb.create(WALLET_OPTIONS, new Cosigner());
 
     {
       const mswallets = await msdb.getWallets();
@@ -234,15 +226,9 @@ describe('MultisigWallet', function () {
   });
 
   it('should remove multisig wallet', async () => {
-    const options = Object.assign(
-      { cosignerName: 'cosigner1' },
-      WALLET_OPTIONS,
-      { id: 'test1' }
-    );
-
-    await msdb.create(options);
-    const removed = await msdb.remove(options.id);
-    const wallet = await msdb.get(options.id);
+    await msdb.create(WALLET_OPTIONS, new Cosigner());
+    const removed = await msdb.remove(WALLET_OPTIONS.id);
+    const wallet = await msdb.get(WALLET_OPTIONS.id);
     const wallets = await msdb.getWallets();
 
     assert.strictEqual(removed, true);
@@ -264,18 +250,14 @@ describe('MultisigWallet', function () {
     const xpub3 = getPubKey();
 
     const options1 = {
-      cosignerName: 'cosigner1',
-      xpub: xpub1.xpubkey(),
       m: 1,
       n: 3
     };
 
-    const mswallet = await msdb.create(options1);
-    const cosigner2 = Cosigner.fromOptions({
-      name: 'cosigner2',
-      path: ''
-    });
+    const cosigner1 = Cosigner.fromOptions({name: 'cosigner1'});
+    const mswallet = await msdb.create(options1, cosigner1, xpub1);
 
+    const cosigner2 = Cosigner.fromOptions({ name: 'cosigner2' });
     const join1 = await mswallet.join(cosigner2, xpub2);
 
     assert(join1, 'Multisig wallet was not returned.');
@@ -318,17 +300,15 @@ describe('MultisigWallet', function () {
 
   it('should fail joining with duplicate XPUB', async () => {
     const xpub = getPubKey();
-    const b58 = xpub.xpubkey();
     const xpub2 = getPubKey();
 
     const options = Object.assign({
-      cosignerName: 'cosigner1',
-      xpub: b58,
       m: 1,
       n: 3
     });
 
-    const mswallet = await msdb.create(options);
+    const cosigner = Cosigner.fromOptions({ name: 'cosigner1' });
+    const mswallet = await msdb.create(options, cosigner, xpub);
 
     const cosigner2 = Cosigner.fromOptions({ name: 'cosigner2' });
     await mswallet.join(cosigner2, xpub2);
@@ -359,13 +339,12 @@ describe('MultisigWallet', function () {
 
   it('should fail joining full wallet', async () => {
     const options = {
-      cosignerName: 'cosigner1',
-      xpub: getXPUB(),
       m: 1,
       n: 2
     };
 
-    const mswallet = await msdb.create(options);
+    const cosigner = Cosigner.fromOptions({ name: 'cosigner1' });
+    const mswallet = await msdb.create(options, cosigner, getPubKey());
     assert.strictEqual(mswallet.isInitialized(), false);
 
     const cosigner1 = Cosigner.fromOptions({
@@ -398,12 +377,8 @@ describe('MultisigWallet', function () {
     const pubkey1 = getPubKey();
     const pubkey2 = getPubKey();
 
-    const options = Object.assign({
-      cosignerName: 'cosigner1',
-      xpub: pubkey1.xpubkey()
-    }, WALLET_OPTIONS);
-
-    const mswallet = await msdb.create(options);
+    const cosigner = Cosigner.fromOptions({ name: 'cosigner1' });
+    const mswallet = await msdb.create(WALLET_OPTIONS, cosigner, pubkey1);
 
     const cosigner1 = Cosigner.fromOptions({ name: 'cosigner2' });
 
@@ -433,13 +408,7 @@ describe('MultisigWallet', function () {
 
   it('should retoken and authenticate with new cosignerToken', async () => {
     const pubkey1 = getPubKey();
-
-    const options = Object.assign({
-      cosignerName: 'cosigner1',
-      xpub: pubkey1.xpubkey()
-    }, WALLET_OPTIONS);
-
-    const mswallet = await msdb.create(options);
+    const mswallet = await msdb.create(WALLET_OPTIONS, new Cosigner(), pubkey1);
 
     const oldToken = mswallet.cosigners[0].token;
 
