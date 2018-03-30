@@ -7,7 +7,7 @@ const assert = require('./util/assert');
 const utils = require('./util/wallet');
 
 const bcoin = require('bcoin');
-const {MTX, Amount, hd} = bcoin;
+const {KeyRing, MTX, Amount, hd} = bcoin;
 const WalletDB = bcoin.wallet.WalletDB;
 const WalletNodeClient = require('../lib/walletclient');
 const MultisigDB = require('../lib/multisigdb');
@@ -29,6 +29,8 @@ describe('MultisigProposals', function () {
 
   let wdb, msdb;
   let mswallet, wallet, pdb;
+
+  let cosigner1, cosigner2;
 
   beforeEach(async () => {
     wdb = new WalletDB();
@@ -58,6 +60,9 @@ describe('MultisigProposals', function () {
     assert(joined, 'Could not join the wallet');
 
     pdb = mswallet.pdb;
+
+    cosigner1 = mswallet.cosigners[0];
+    cosigner2 = mswallet.cosigners[1];
   });
 
   afterEach(async () => {
@@ -93,10 +98,43 @@ describe('MultisigProposals', function () {
   });
 
   it('should lock the coins and recover locked coins', async () => {
-    //await utils.fundWalletBlock(wdb, mswallet, 1);
+    // this is mostly wallet test than proposal
+    await utils.fundWalletBlock(wdb, mswallet, 1);
+
     const coins = await wallet.getCoins();
+    assert.strictEqual(coins.length, 1);
+
+    const txoptions = {
+      subtractFee: true,
+      outputs: [{
+        address: generateAddress(),
+        value: Amount.fromBTC(1).toValue()
+      }]
+    };
 
     // create proposal
+    const mtx = await mswallet.createTX(txoptions);
+    assert.instanceOf(mtx, MTX);
+
+    for (const coin of coins)
+      await mswallet.lockCoin(coin);
+
+    let err;
+    try {
+      await mswallet.createTX(txoptions);
+    } catch (e) {
+      err = e;
+    }
+
+    const message = 'Not enough funds. (available=0.0, required=1.0)';
+    assert(err);
+    assert.strictEqual(err.message, message);
+
+    for (const coin of coins)
+      await mswallet.unlockCoin(coin);
+
+    const mtx2 = await mswallet.createTX(txoptions);
+    assert.instanceOf(mtx2, MTX);
   });
 });
 
@@ -107,4 +145,8 @@ describe('MultisigProposals', function () {
 function getPubKey() {
   return hd.PrivateKey.generate()
     .derivePath(TEST_XPUB_PATH).toPublic();
+}
+
+function generateAddress() {
+  return KeyRing.generate().getAddress();
 }
