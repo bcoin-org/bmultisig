@@ -203,6 +203,10 @@ describe('MultisigProposals', function () {
     assert(err, 'Create proposal must throw an error.');
     assert.strictEqual(err.message, message, 'Incorrect error message.');
   });
+
+  // TODO:
+  it('should reject proposal with reorged coins', async () => {
+  });
 });
 
 /*
