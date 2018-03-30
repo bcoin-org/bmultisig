@@ -102,12 +102,11 @@ describe('MultisigWallet', function () {
     const data = mswallet1.toRaw();
     const mswallet2 = MultisigWallet.fromRaw(TEST_MSDB, data);
 
-    // we don't care about wid/id
+    // we don't care about wid/id/master
     mswallet1.wid = 0;
     mswallet1.id = null;
-    mswallet1.master = mswallet2.master;
 
-    assert.deepStrictEqual(mswallet2, mswallet1);
+    assert.deepStrictEqual(mswallet1.toJSON(0), mswallet2.toJSON(0));
   });
 
   it('should create multisig wallet', async () => {
@@ -438,8 +437,4 @@ function generateMaster() {
 function getPubKey() {
   return hd.PrivateKey.generate()
     .derivePath(TEST_XPUB_PATH).toPublic();
-}
-
-function getXPUB() {
-  return getPubKey().xpubkey();
 }
