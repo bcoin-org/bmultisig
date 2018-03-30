@@ -163,6 +163,46 @@ describe('MultisigProposals', function () {
     assert(err);
     assert.strictEqual(err.message, message);
   });
+
+  it('should lock the coins after server restart', async () => {
+    await utils.fundWalletBlock(wdb, mswallet, 1);
+
+    const coins = await wallet.getCoins();
+    assert.strictEqual(coins.length, 1);
+
+    const txoptions = getTXOptions(1);
+
+    const proposal = await mswallet.createProposal(
+      'proposal-1',
+      cosigner1,
+      txoptions
+    );
+
+    assert.instanceOf(proposal, Proposal);
+
+    await msdb.close();
+    await wdb.close();
+
+    await wdb.open();
+    await msdb.open();
+
+    mswallet = await msdb.get(TEST_WALLET_ID);
+
+    let err;
+    try {
+      await mswallet.createProposal(
+        'proposal-2',
+        cosigner2,
+        txoptions
+      );
+    } catch (e) {
+      err = e;
+    }
+
+    const message = 'Not enough funds. (available=0.0, required=1.0)';
+    assert(err, 'Create proposal must throw an error.');
+    assert.strictEqual(err.message, message, 'Incorrect error message.');
+  });
 });
 
 /*
