@@ -12,6 +12,7 @@ const WalletDB = bcoin.wallet.WalletDB;
 const WalletNodeClient = require('../lib/walletclient');
 const MultisigDB = require('../lib/multisigdb');
 const Cosigner = require('../lib/cosigner');
+const Proposal = require('../lib/proposal');
 
 const TEST_XPUB_PATH = 'm/44\'/0\'/0\'';
 const TEST_WALLET_ID = 'test';
@@ -104,13 +105,7 @@ describe('MultisigProposals', function () {
     const coins = await wallet.getCoins();
     assert.strictEqual(coins.length, 1);
 
-    const txoptions = {
-      subtractFee: true,
-      outputs: [{
-        address: generateAddress(),
-        value: Amount.fromBTC(1).toValue()
-      }]
-    };
+    const txoptions = getTXOptions(1);
 
     // create proposal
     const mtx = await mswallet.createTX(txoptions);
@@ -136,11 +131,53 @@ describe('MultisigProposals', function () {
     const mtx2 = await mswallet.createTX(txoptions);
     assert.instanceOf(mtx2, MTX);
   });
+
+  it('should lock the coins on proposal creation', async () => {
+    await utils.fundWalletBlock(wdb, mswallet, 1);
+
+    const coins = await wallet.getCoins();
+    assert.strictEqual(coins.length, 1);
+
+    const txoptions = getTXOptions(1);
+
+    const proposal = await mswallet.createProposal(
+      'proposal-1',
+      cosigner1,
+      txoptions
+    );
+
+    assert.instanceOf(proposal, Proposal);
+
+    let err;
+    try {
+      await mswallet.createProposal(
+        'proposal-2',
+        cosigner2,
+        txoptions
+      );
+    } catch (e) {
+      err = e;
+    }
+
+    const message = 'Not enough funds. (available=0.0, required=1.0)';
+    assert(err);
+    assert.strictEqual(err.message, message);
+  });
 });
 
 /*
  * Helpers
  */
+
+function getTXOptions(btc) {
+  return {
+    subtractFee: true,
+    outputs: [{
+      address: generateAddress(),
+      value: Amount.fromBTC(1).toValue()
+    }]
+  };
+}
 
 function getPubKey() {
   return hd.PrivateKey.generate()
