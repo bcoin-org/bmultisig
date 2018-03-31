@@ -207,6 +207,33 @@ describe('MultisigProposals', function () {
   // TODO:
   it('should reject proposal with reorged coins', async () => {
   });
+
+  it('should get proposal', async () => {
+    await utils.fundWalletBlock(wdb, mswallet, 1);
+
+    const txoptions = getTXOptions(1);
+
+    const proposal1 = await mswallet.createProposal(
+      'proposal-1',
+      cosigner1,
+      txoptions
+    );
+
+    assert.instanceOf(proposal1, Proposal);
+
+    const proposal2 = await mswallet.getProposal('proposal-1', true);
+
+    assert.instanceOf(proposal2, Proposal);
+    assert.deepStrictEqual(proposal1, proposal2);
+
+    const proposal3 = await mswallet.getProposal('proposal-1', false);
+
+    assert.instanceOf(proposal3, Proposal);
+    assert.typeOf(proposal3.tx, 'null');
+
+    proposal3.tx = proposal1.tx;
+    assert.deepStrictEqual(proposal1, proposal3);
+  });
 });
 
 /*
