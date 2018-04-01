@@ -259,6 +259,26 @@ describe('MultisigProposals', function () {
 
     assert.strictEqual(inputPaths.length, 2);
   });
+
+  it('should reject proposal', async () => {
+    await utils.fundWalletBlock(wdb, mswallet, 1);
+
+    const txoptions = getTXOptions(1);
+
+    await mswallet.createProposal('proposal', cosigner1, txoptions);
+
+    const proposal1 = await mswallet.rejectProposal('proposal', cosigner1);
+
+    assert.strictEqual(proposal1.status, Proposal.status.REJECTED);
+
+    const proposal2 = await mswallet.createProposal(
+      'proposal1',
+      cosigner1,
+      txoptions
+    );
+
+    assert.instanceOf(proposal2, Proposal);
+  });
 });
 
 /*
