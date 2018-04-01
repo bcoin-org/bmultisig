@@ -25,8 +25,10 @@ const TEST_N = 2;
 
 describe('MultisigProposals', function () {
   // 2-of-2 will be used for tests
-  const xpub1 = getPubKey();
-  const xpub2 = getPubKey();
+  const priv1 = getPrivKey();
+  const priv2 = getPrivKey();
+  const xpub1 = priv1.derivePath(TEST_XPUB_PATH).toPublic();
+  const xpub2 = priv2.derivePath(TEST_XPUB_PATH).toPublic();
 
   let wdb, msdb;
   let mswallet, wallet, pdb;
@@ -221,18 +223,41 @@ describe('MultisigProposals', function () {
 
     assert.instanceOf(proposal1, Proposal);
 
-    const proposal2 = await mswallet.getProposal('proposal-1', true);
+    const proposal2 = await mswallet.getProposalTX('proposal-1');
 
     assert.instanceOf(proposal2, Proposal);
     assert.deepStrictEqual(proposal1, proposal2);
 
-    const proposal3 = await mswallet.getProposal('proposal-1', false);
+    const proposal3 = await mswallet.getProposal('proposal-1');
 
     assert.instanceOf(proposal3, Proposal);
     assert.typeOf(proposal3.tx, 'null');
 
     proposal3.tx = proposal1.tx;
     assert.deepStrictEqual(proposal1, proposal3);
+  });
+
+  it('should fail getting non-existent proposal', async () => {
+    const proposal = await mswallet.getProposal('test');
+    assert.typeOf(proposal, 'null');
+  });
+
+  it('should get proposal mtx', async () => {
+    await utils.fundWalletBlock(wdb, mswallet, 1);
+    await utils.fundWalletBlock(wdb, mswallet, 2);
+
+    const txoptions = getTXOptions(3);
+
+    await mswallet.createProposal('proposal', cosigner1, txoptions);
+
+    const [proposal, mtx] = await mswallet.getProposalMTX('proposal');
+
+    assert.instanceOf(proposal, Proposal);
+    assert.instanceOf(mtx, MTX);
+
+    const inputPaths = await mswallet.getInputPaths(mtx);
+
+    assert.strictEqual(inputPaths.length, 2);
   });
 });
 
@@ -245,14 +270,13 @@ function getTXOptions(btc) {
     subtractFee: true,
     outputs: [{
       address: generateAddress(),
-      value: Amount.fromBTC(1).toValue()
+      value: Amount.fromBTC(btc).toValue()
     }]
   };
 }
 
-function getPubKey() {
-  return hd.PrivateKey.generate()
-    .derivePath(TEST_XPUB_PATH).toPublic();
+function getPrivKey() {
+  return hd.PrivateKey.generate();
 }
 
 function generateAddress() {
