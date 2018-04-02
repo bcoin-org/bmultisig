@@ -262,22 +262,94 @@ describe('MultisigProposals', function () {
 
   it('should reject proposal', async () => {
     await utils.fundWalletBlock(wdb, mswallet, 1);
+    await utils.fundWalletBlock(wdb, mswallet, 1);
+    await utils.fundWalletBlock(wdb, mswallet, 1);
 
     const txoptions = getTXOptions(1);
 
     await mswallet.createProposal('proposal', cosigner1, txoptions);
+    await mswallet.createProposal('proposal1', cosigner1, txoptions);
+    await mswallet.createProposal('proposal2', cosigner1, txoptions);
+
+    const pendingProposals = await mswallet.getPendingProposals();
+
+    assert.strictEqual(pendingProposals.length, 3);
 
     const proposal1 = await mswallet.rejectProposal('proposal', cosigner1);
-
     assert.strictEqual(proposal1.status, Proposal.status.REJECTED);
 
+    const pendingProposals2 = await mswallet.getPendingProposals();
+    assert.strictEqual(pendingProposals2.length, 2);
+
     const proposal2 = await mswallet.createProposal(
-      'proposal1',
+      'proposal3',
       cosigner1,
       txoptions
     );
 
     assert.instanceOf(proposal2, Proposal);
+  });
+
+  it('should fail rejecting rejected proposal', async () => {
+    await utils.fundWalletBlock(wdb, mswallet, 1);
+
+    const txoptions = getTXOptions(1);
+
+    await mswallet.createProposal('proposal', cosigner1, txoptions);
+    await mswallet.rejectProposal('proposal', cosigner1);
+
+    let err;
+    try {
+      await mswallet.rejectProposal('proposal', cosigner2);
+    } catch (e) {
+      err = e;
+    }
+
+    assert.instanceOf(err, Error);
+    assert.strictEqual(err.message, 'Can not reject non pending proposal.');
+  });
+
+  it('should fail approving proposal', async () => {
+    await utils.fundWalletBlock(wdb, mswallet, 1);
+    await utils.fundWalletBlock(wdb, mswallet, 1);
+
+    const txoptions = getTXOptions(1);
+
+    const proposal = await mswallet.createProposal(
+      'proposal',
+      cosigner1,
+      txoptions
+    );
+
+    await mswallet.createProposal('proposal1', cosigner1, txoptions);
+
+    const pendingProposals = await mswallet.getPendingProposals();
+    assert.strictEqual(pendingProposals.length, 2);
+
+    const tx = proposal.tx;
+    await mswallet.approveProposal('proposal', cosigner1, tx);
+
+    let err;
+
+    try {
+      await mswallet.approveProposal('proposal', cosigner1, tx);
+    } catch (e) {
+      err = e;
+    }
+
+    assert.instanceOf(err, Error);
+    assert.strictEqual(err.message, 'Cosigner already approved.');
+
+    const proposal1 = await mswallet.approveProposal('proposal', cosigner2, tx);
+
+    assert.strictEqual(proposal1.status, Proposal.status.VERIFY);
+
+    // are coins free
+    await mswallet.createProposal(
+      'proposal2',
+      cosigner1,
+      txoptions
+    );
   });
 });
 
