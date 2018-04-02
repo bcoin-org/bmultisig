@@ -7,7 +7,7 @@ const assert = require('./util/assert');
 const utils = require('./util/wallet');
 
 const bcoin = require('bcoin');
-const {KeyRing, MTX, Amount, hd} = bcoin;
+const {Script, KeyRing, MTX, Amount, hd} = bcoin;
 const WalletDB = bcoin.wallet.WalletDB;
 const WalletNodeClient = require('../lib/walletclient');
 const MultisigDB = require('../lib/multisigdb');
@@ -25,10 +25,10 @@ const TEST_N = 2;
 
 describe('MultisigProposals', function () {
   // 2-of-2 will be used for tests
-  const priv1 = getPrivKey();
-  const priv2 = getPrivKey();
-  const xpub1 = priv1.derivePath(TEST_XPUB_PATH).toPublic();
-  const xpub2 = priv2.derivePath(TEST_XPUB_PATH).toPublic();
+  const priv1 = getPrivKey().derivePath(TEST_XPUB_PATH);
+  const priv2 = getPrivKey().derivePath(TEST_XPUB_PATH);
+  const xpub1 = priv1.toPublic();
+  const xpub2 = priv2.toPublic();
 
   let wdb, msdb;
   let mswallet, wallet, pdb;
@@ -350,6 +350,52 @@ describe('MultisigProposals', function () {
       cosigner1,
       txoptions
     );
+  });
+
+  it('should approve signed proposal.', async () => {
+    await utils.fundWalletBlock(wdb, mswallet, 1);
+
+    const txoptions = getTXOptions(1);
+
+    await mswallet.createProposal('proposal', cosigner1, txoptions);
+
+    const pending = await mswallet.getPendingProposals();
+    assert.strictEqual(pending.length, 1);
+
+    const approve = async (priv, cosigner) => {
+      const [proposal, mtx] = await mswallet.getProposalMTX('proposal');
+      const paths = await mswallet.getInputPaths(mtx);
+
+      // sign transaction cosigner1
+      mtx.inputs.forEach((input, i) => {
+        const path = paths[i];
+
+        // derive correct priv key
+        const _priv = priv.derive(path.branch).derive(path.index);
+
+        // derive pubkeys
+        const p1 = xpub1.derive(path.branch).derive(path.index);
+        const p2 = xpub2.derive(path.branch).derive(path.index);
+
+        const ring = KeyRing.fromPrivate(_priv.privateKey);
+
+        ring.script = Script.fromMultisig(
+          proposal.m,
+          proposal.n,
+          [p1.publicKey, p2.publicKey]
+        );
+
+        const signed = mtx.sign(ring);
+
+        assert.strictEqual(signed, 1);
+      });
+
+      // approve proposal
+      await mswallet.approveProposal('proposal', cosigner, mtx);
+    };
+
+    await approve(priv1, cosigner1);
+    await approve(priv2, cosigner2);
   });
 });
 
