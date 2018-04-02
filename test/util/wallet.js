@@ -14,9 +14,9 @@ exports.nextBlock = (wdb) => {
 };
 
 exports.fakeBlock = (height) => {
-  const prev = hash256.digest(fromU32((height - 1) >>> 0));
-  const hash = hash256.digest(fromU32(height >>> 0));
-  const root = hash256.digest(fromU32((height | 0x80000000) >>> 0));
+  const prev = hash256.digest(fromU32LE((height - 1) >>> 0));
+  const hash = hash256.digest(fromU32LE(height >>> 0));
+  const root = hash256.digest(fromU32LE((height | 0x80000000) >>> 0));
 
   return {
     hash: hash.toString('hex'),
@@ -76,7 +76,7 @@ exports.fundWalletBlock = async (wdb, mswallet, amount) => {
  * Helpers
  */
 
-function fromU32(num) {
+function fromU32LE(num) {
   const data = Buffer.allocUnsafe(4);
   data.writeUInt32LE(num, 0, true);
   return data;
