@@ -65,6 +65,10 @@ exports.fundWalletBlock = async (wdb, mswallet, amount) => {
   const account = await mswallet.getAccount();
   const address = await account.receiveAddress();
 
+  return exports.fundAddressBlock(wdb, address, amount);
+};
+
+exports.fundAddressBlock = async (wdb, address, amount) => {
   amount = Amount.fromBTC(amount).toValue();
 
   const mtx = exports.createFundTX(address, amount);
