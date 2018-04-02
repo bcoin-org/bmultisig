@@ -345,6 +345,102 @@ describe('HTTP', function () {
     assert.strictEqual(addr2.account, 0);
   });
 
+  it('should fund and create transaction', async () => {
+    const msWalletDetails = await testWalletClient1.getInfo('test', true);
+    const addr = msWalletDetails.account.receiveAddress;
+
+    await utils.fundAddressBlock(wdb, addr, 1);
+
+    const txoptions = getTXOptions(1);
+
+    const txjson = await testWalletClient1.createTX(
+      WALLET_OPTIONS.id,
+      txoptions
+    );
+
+    assert.strictEqual(typeof txjson, 'object');
+    const tx = TX.fromJSON(txjson);
+
+    assert.instanceOf(tx, TX);
+    assert.strictEqual(tx.inputs.length, 1);
+    assert.strictEqual(tx.outputs.length, 1);
+  });
+
+  it('should create proposal', async () => {
+    const txoptions = getTXOptions(1);
+
+    const proposal = await testWalletClient2.createProposal(
+      WALLET_OPTIONS.id,
+      'proposal1',
+      txoptions
+    );
+
+    const tx = TX.fromRaw(proposal.tx, 'hex');
+
+    assert.instanceOf(tx, TX);
+    assert.deepStrictEqual(proposal.author, { id: 1, name: 'cosigner2' });
+    assert.strictEqual(proposal.name, 'proposal1');
+    assert.strictEqual(proposal.m, WALLET_OPTIONS.m);
+    assert.strictEqual(proposal.n, WALLET_OPTIONS.n);
+    assert.strictEqual(proposal.statusCode, Proposal.status.PROGRESS);
+  });
+
+  it('should list pending proposals', async () => {
+    const proposals = await testWalletClient1.getProposals(WALLET_OPTIONS.id);
+    const proposal = proposals[0];
+
+    assert.strictEqual(proposals.length, 1);
+    assert.deepStrictEqual(proposal.author, { id: 1, name: 'cosigner2'});
+  });
+
+  it('should get proposal', async () => {
+    const proposal = await testWalletClient1.getProposalInfo(
+      WALLET_OPTIONS.id,
+      'proposal1'
+    );
+
+    assert.strictEqual(proposal.name, 'proposal1');
+    assert.strictEqual(proposal.m, WALLET_OPTIONS.m);
+    assert.strictEqual(proposal.n, WALLET_OPTIONS.n);
+    assert.strictEqual(proposal.statusCode, Proposal.status.PROGRESS);
+  });
+
+  it('should get proposal tx', async () => {
+    const txinfo = await testWalletClient1.getProposalTX(
+      WALLET_OPTIONS.id,
+      'proposal1'
+    );
+
+    assert(txinfo.tx);
+  });
+
+  it('should reject proposal', async () => {
+    const proposal = await testWalletClient1.rejectProposal(
+      WALLET_OPTIONS.id,
+      'proposal1'
+    );
+
+    const pendingProposals = await testWalletClient1.getProposals(
+      WALLET_OPTIONS.id
+    );
+
+    const proposals = await testWalletClient1.getProposals(
+      WALLET_OPTIONS.id,
+      false
+    );
+
+    assert.strictEqual(pendingProposals.length, 0);
+    assert.strictEqual(proposals.length, 1);
+
+    assert.strictEqual(proposal.name, 'proposal1');
+    assert.strictEqual(proposal.statusCode, Proposal.status.REJECTED);
+    assert.strictEqual(proposal.rejections.length, 1);
+    assert.deepStrictEqual(proposal.rejections[0], {
+      id: 0,
+      name: 'cosigner1'
+    });
+  });
+
   it('should delete multisig wallet', async () => {
     const id = 'test';
     const multisigWalletsBefore = await adminClient.getWallets();
