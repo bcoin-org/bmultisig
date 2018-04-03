@@ -22,7 +22,7 @@ const TEST_OPTIONS = {
 
 // its serialization
 const TEST_RAW = Buffer.from(
-  '05000000' // id
+  '05' // id
   + '00000000' // tokenDepth
   + TEST_TOKEN.toString('hex') // token
   + '05' + '7465737431' // name

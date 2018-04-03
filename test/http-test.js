@@ -4,11 +4,13 @@
 'use strict';
 
 const assert = require('./util/assert');
+const utils = require('./util/wallet');
+
 const bcoin = require('bcoin');
-const {FullNode} = bcoin;
-const {wallet} = bcoin;
-const {Network} = bcoin;
-const {hd} = bcoin;
+const {Network, FullNode} = bcoin;
+const {Script, CoinView, Coin, MTX, TX, Amount, KeyRing} = bcoin;
+const {wallet, hd} = bcoin;
+const Proposal = require('../lib/proposal');
 
 const MultisigClient = require('../lib/client');
 const {WalletClient} = require('bclient');
@@ -47,11 +49,19 @@ const walletNode = new wallet.Node({
   nodeApiKey: options.apiKey,
   adminToken: ADMIN_TOKEN,
 
+  //logLevel: 'debug',
+
   plugins: [require('../lib/bmultisig')]
 });
 
+const wdb = walletNode.wdb;
+
+walletNode.on('error', err => console.log(err));
+
+const TEST_XPUB_PATH = 'm/44\'/0\'/0\'';
+
 const WALLET_OPTIONS = {
-  m: 1,
+  m: 2,
   n: 2,
   id: 'test'
 };
@@ -70,8 +80,14 @@ describe('HTTP', function () {
   let adminClient;
   let multisigClient;
   let walletAdminClient;
-  let testWalletClient;
+  let testWalletClient1;
+  let testWalletClient2;
   let joinKey;
+
+  const priv1 = getPrivKey().derivePath(TEST_XPUB_PATH);
+  const priv2 = getPrivKey().derivePath(TEST_XPUB_PATH);
+  const xpub1 = priv1.toPublic();
+  const xpub2 = priv2.toPublic();
 
   beforeEach(async () => {
     adminClient = new MultisigClient({
@@ -93,7 +109,8 @@ describe('HTTP', function () {
   });
 
   it('should create multisig wallet', async () => {
-    const xpub = getXPUB();
+    const xpub = xpub1.xpubkey(network);
+
     const cosignerName = 'cosigner1';
     const id = WALLET_OPTIONS.id;
 
@@ -108,7 +125,7 @@ describe('HTTP', function () {
     assert.strictEqual(wallet.wid, 1);
     assert.strictEqual(wallet.id, id);
     assert.strictEqual(wallet.cosigners.length, 1);
-    assert.strictEqual(wallet.m, 1);
+    assert.strictEqual(wallet.m, 2);
     assert.strictEqual(wallet.n, 2);
 
     const cosigner = wallet.cosigners[0];
@@ -119,7 +136,7 @@ describe('HTTP', function () {
 
     joinKey = wallet.joinKey;
 
-    testWalletClient = new MultisigClient({
+    testWalletClient1 = new MultisigClient({
       port: network.walletPort,
       apiKey: API_KEY,
       token: cosigner.token
@@ -152,7 +169,7 @@ describe('HTTP', function () {
   });
 
   it('should join multisig wallet', async () => {
-    const xpub = getXPUB();
+    const xpub = xpub2.xpubkey(network);
     const cosignerName = 'cosigner2';
 
     const mswallet = await multisigClient.join(WALLET_OPTIONS.id, {
@@ -168,15 +185,20 @@ describe('HTTP', function () {
     const cosigners = mswallet.cosigners;
 
     assert.deepStrictEqual(cosigners[0], {
-      name: 'cosigner1',
-      path: '',
-      tokenDepth: 0,
-      token: null
+      id: 0,
+      name: 'cosigner1'
     });
 
     assert.notTypeOf(cosigners[1].token, 'null');
 
+    testWalletClient2 = new MultisigClient({
+      port: network.walletPort,
+      apiKey: API_KEY,
+      token: cosigners[1].token
+    });
+
     assert.deepStrictEqual(cosigners[1], Object.assign({
+      id: 1,
       name: 'cosigner2',
       path: '',
       tokenDepth: 0
@@ -186,7 +208,7 @@ describe('HTTP', function () {
   });
 
   it('should get multisig wallet by id', async () => {
-    const multisigWallet = await testWalletClient.getInfo('test');
+    const multisigWallet = await testWalletClient1.getInfo('test');
 
     assert(multisigWallet, 'Can not get multisig wallet.');
     assert.strictEqual(multisigWallet.wid, 1);
@@ -194,20 +216,13 @@ describe('HTTP', function () {
 
     assert.strictEqual(multisigWallet.initialized, true);
     assert.strictEqual(multisigWallet.cosigners.length, 2);
-    assert.deepEqual(multisigWallet.cosigners, [{
-      name: 'cosigner1',
-      path: '',
-      tokenDepth: 0,
-      token: null
-    }, {
-      name: 'cosigner2',
-      path: '',
-      tokenDepth: 0,
-      token: null
-    }]);
+    assert.deepEqual(multisigWallet.cosigners, [
+      { id: 0, name: 'cosigner1' },
+      { id: 1, name: 'cosigner2' }
+    ]);
 
     // with details
-    const msWalletDetails = await testWalletClient.getInfo('test', true);
+    const msWalletDetails = await testWalletClient1.getInfo('test', true);
     const account = msWalletDetails.account;
 
     assert(msWalletDetails, 'Can not get multisig wallet');
@@ -265,7 +280,7 @@ describe('HTTP', function () {
     const balance1 = await adminClient.getBalance(WALLET_OPTIONS.id);
 
     // cosigner auth
-    const balance2 = await testWalletClient.getBalance(WALLET_OPTIONS.id);
+    const balance2 = await testWalletClient1.getBalance(WALLET_OPTIONS.id);
 
     assert(err);
     assert.strictEqual(err.message, 'Authentication error.');
@@ -301,7 +316,7 @@ describe('HTTP', function () {
     }
 
     const coins1 = await adminClient.getCoins(WALLET_OPTIONS.id);
-    const coins2 = await testWalletClient.getCoins(WALLET_OPTIONS.id);
+    const coins2 = await testWalletClient1.getCoins(WALLET_OPTIONS.id);
 
     assert(err);
     assert.strictEqual(err.message, 'Authentication error.');
@@ -319,7 +334,7 @@ describe('HTTP', function () {
     }
 
     const addr1 = await adminClient.createAddress(WALLET_OPTIONS.id);
-    const addr2 = await testWalletClient.createAddress(WALLET_OPTIONS.id);
+    const addr2 = await testWalletClient2.createAddress(WALLET_OPTIONS.id);
 
     assert(err);
     assert.strictEqual(err.message, 'Authentication error.');
@@ -332,6 +347,254 @@ describe('HTTP', function () {
     assert.strictEqual(addr2.name, 'default');
     assert.strictEqual(addr1.account, 0);
     assert.strictEqual(addr2.account, 0);
+  });
+
+  it('should fund and create transaction', async () => {
+    const msWalletDetails = await testWalletClient1.getInfo('test', true);
+    const addr = msWalletDetails.account.receiveAddress;
+
+    await utils.fundAddressBlock(wdb, addr, 1);
+
+    const txoptions = getTXOptions(1);
+
+    const txjson = await testWalletClient1.createTX(
+      WALLET_OPTIONS.id,
+      txoptions
+    );
+
+    assert.strictEqual(typeof txjson, 'object');
+    const tx = TX.fromJSON(txjson);
+
+    assert.instanceOf(tx, TX);
+    assert.strictEqual(tx.inputs.length, 1);
+    assert.strictEqual(tx.outputs.length, 1);
+  });
+
+  it('should create proposal', async () => {
+    const txoptions = getTXOptions(1);
+
+    const proposal = await testWalletClient2.createProposal(
+      WALLET_OPTIONS.id,
+      'proposal1',
+      txoptions
+    );
+
+    const tx = TX.fromRaw(proposal.tx, 'hex');
+
+    assert.instanceOf(tx, TX);
+    assert.deepStrictEqual(proposal.author, { id: 1, name: 'cosigner2' });
+    assert.strictEqual(proposal.name, 'proposal1');
+    assert.strictEqual(proposal.m, WALLET_OPTIONS.m);
+    assert.strictEqual(proposal.n, WALLET_OPTIONS.n);
+    assert.strictEqual(proposal.statusCode, Proposal.status.PROGRESS);
+  });
+
+  it('should list pending proposals', async () => {
+    const proposals = await testWalletClient1.getProposals(WALLET_OPTIONS.id);
+    const proposal = proposals[0];
+
+    assert.strictEqual(proposals.length, 1);
+    assert.deepStrictEqual(proposal.author, { id: 1, name: 'cosigner2'});
+  });
+
+  it('should get proposal', async () => {
+    const proposal = await testWalletClient1.getProposalInfo(
+      WALLET_OPTIONS.id,
+      'proposal1'
+    );
+
+    assert.strictEqual(proposal.name, 'proposal1');
+    assert.strictEqual(proposal.m, WALLET_OPTIONS.m);
+    assert.strictEqual(proposal.n, WALLET_OPTIONS.n);
+    assert.strictEqual(proposal.statusCode, Proposal.status.PROGRESS);
+  });
+
+  it('should get proposal tx', async () => {
+    const txinfo = await testWalletClient1.getProposalMTX(
+      WALLET_OPTIONS.id,
+      'proposal1'
+    );
+
+    assert(txinfo.tx);
+  });
+
+  it('should reject proposal', async () => {
+    const proposal = await testWalletClient1.rejectProposal(
+      WALLET_OPTIONS.id,
+      'proposal1'
+    );
+
+    const pendingProposals = await testWalletClient1.getProposals(
+      WALLET_OPTIONS.id
+    );
+
+    const proposals = await testWalletClient1.getProposals(
+      WALLET_OPTIONS.id,
+      false
+    );
+
+    assert.strictEqual(pendingProposals.length, 0);
+    assert.strictEqual(proposals.length, 1);
+
+    assert.strictEqual(proposal.name, 'proposal1');
+    assert.strictEqual(proposal.statusCode, Proposal.status.REJECTED);
+    assert.strictEqual(proposal.rejections.length, 1);
+    assert.deepStrictEqual(proposal.rejections[0], {
+      id: 0,
+      name: 'cosigner1'
+    });
+  });
+
+  it('should create another proposal using same coins', async () => {
+    const txoptions = getTXOptions(1);
+    const proposal = await testWalletClient1.createProposal(
+      WALLET_OPTIONS.id,
+      'proposal2',
+      txoptions
+    );
+
+    assert.strictEqual(proposal.name, 'proposal2');
+    assert.deepStrictEqual(proposal.author, {
+      id: 0,
+      name: 'cosigner1'
+    });
+
+    assert.strictEqual(proposal.statusCode, Proposal.status.PROGRESS);
+  });
+
+  it('should get transaction with input paths', async () => {
+    const txinfo = await testWalletClient1.getProposalMTX(
+      WALLET_OPTIONS.id,
+      'proposal2',
+      { path: true }
+    );
+
+    const mtx = MTX.fromJSON(txinfo.tx);
+    const paths = txinfo.paths;
+
+    assert.instanceOf(mtx, MTX);
+    assert.strictEqual(mtx.inputs.length, txinfo.paths.length);
+    assert.strictEqual(paths[0].branch, 0);
+    assert.strictEqual(paths[0].index, 2);
+    assert.strictEqual(paths[0].receive, true);
+  });
+
+  it('should sign and approve proposal', async () => {
+    const txinfo = await testWalletClient1.getProposalMTX(
+      WALLET_OPTIONS.id,
+      'proposal2',
+      {
+        path: true,
+        scripts: true
+      }
+    );
+
+    const mtx = MTX.fromJSON(txinfo.tx);
+    const paths = txinfo.paths;
+    const scripts = txinfo.scripts;
+
+    // recover coinview
+    const view = new CoinView();
+    for (const input of txinfo.tx.inputs) {
+      if (!input.coin)
+        continue;
+
+      input.coin.hash = input.prevout.hash;
+      input.coin.index = input.prevout.index;
+      const coin = Coin.fromJSON(input.coin);
+      view.addCoin(coin);
+    }
+
+    mtx.view = view;
+
+    const value = mtx.getInputValue();
+    assert.strictEqual(value, Amount.fromBTC(1).toValue());
+
+    // cosigner1
+    mtx.inputs.forEach((input, i) => {
+      const path = paths[i];
+      const priv = priv1.derive(path.branch).derive(path.index);
+      const ring = KeyRing.fromPrivate(priv.privateKey);
+      const script = Script.fromRaw(Buffer.from(scripts[i]), 'hex');
+
+      ring.script = script;
+      ring.witness = true;
+
+      const signed = mtx.sign(ring);
+      assert.strictEqual(signed, 1);
+    });
+
+    const proposal = await testWalletClient1.approveProposal(
+      WALLET_OPTIONS.id,
+      'proposal2',
+      mtx.toRaw().toString('hex')
+    );
+
+    assert.strictEqual(proposal.approvals.length, 1);
+    assert.strictEqual(proposal.statusCode, Proposal.status.PROGRESS);
+  });
+
+  it('should approve and verify', async () => {
+    const balance1 = await testWalletClient1.getBalance(WALLET_OPTIONS.id);
+
+    const txinfo = await testWalletClient1.getProposalMTX(
+      WALLET_OPTIONS.id,
+      'proposal2',
+      {
+        path: true,
+        scripts: true
+      }
+    );
+
+    const mtx = MTX.fromJSON(txinfo.tx);
+    const paths = txinfo.paths;
+    const scripts = txinfo.scripts;
+
+    // recover coinview
+    const view = new CoinView();
+    for (const input of txinfo.tx.inputs) {
+      if (!input.coin)
+        continue;
+
+      input.coin.hash = input.prevout.hash;
+      input.coin.index = input.prevout.index;
+      const coin = Coin.fromJSON(input.coin);
+      view.addCoin(coin);
+    }
+
+    mtx.view = view;
+
+    const value = mtx.getInputValue();
+    assert.strictEqual(value, Amount.fromBTC(1).toValue());
+
+    // cosigner1
+    mtx.inputs.forEach((input, i) => {
+      const path = paths[i];
+      const priv = priv2.derive(path.branch).derive(path.index);
+      const ring = KeyRing.fromPrivate(priv.privateKey);
+      const script = Script.fromRaw(Buffer.from(scripts[i]), 'hex');
+
+      ring.script = script;
+      ring.witness = true;
+
+      const signed = mtx.sign(ring);
+      assert.strictEqual(signed, 1);
+    });
+
+    const proposal = await testWalletClient2.approveProposal(
+      WALLET_OPTIONS.id,
+      'proposal2',
+      mtx.toRaw().toString('hex')
+    );
+
+    await wdb.addBlock(utils.nextBlock(wdb), [mtx.toTX()]);
+    const balance2 = await testWalletClient1.getBalance(WALLET_OPTIONS.id);
+
+    assert.strictEqual(Amount.fromBTC(1).toValue(), balance1.confirmed);
+    assert.strictEqual(0, balance2.confirmed);
+
+    assert.strictEqual(proposal.statusCode, Proposal.status.APPROVED);
+    assert.strictEqual(proposal.approvals.length, 2);
   });
 
   it('should delete multisig wallet', async () => {
@@ -362,8 +625,20 @@ describe('HTTP', function () {
  * Helpers
  */
 
-function getXPUB() {
-  return hd.PrivateKey.generate()
-    .derivePath('m/44\'/0\'/0\'')
-    .xpubkey(network);
+function getTXOptions(btc) {
+  return {
+    subtractFee: true,
+    outputs: [{
+      address: generateAddress().toString(network),
+      value: Amount.fromBTC(btc).toValue()
+    }]
+  };
+}
+
+function getPrivKey() {
+  return hd.PrivateKey.generate();
+}
+
+function generateAddress() {
+  return KeyRing.generate().getAddress();
 }

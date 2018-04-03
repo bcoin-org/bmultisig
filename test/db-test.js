@@ -5,7 +5,7 @@
 
 const assert = require('./util/assert');
 const MultisigDB = require('../lib/multisigdb');
-const layout = require('../lib/layout');
+const layout = require('../lib/layout').msdb;
 
 /*
  * Most test cases are handled by http-test
