@@ -1,11 +1,16 @@
 # bmultisig
 
-bmultisig is a [bcoin][bcoin] plugin which adds multisig wallet paths and events to bwallet, for payment proposals.
+bmultisig is a [bcoin][bcoin] plugin which adds multisig wallet http endpoints and events to bwallet for payment proposals.
+
+## Note
+**This is work in progress, not ready for production use.**
 
 ## Usage
 
 ``` bash
-$ bwallet --plugins bmultisig
+$ npm install -g bmultisig
+$ bcoin --no-wallet
+$ bmultisig
 ```
 
 ## Contribution and License Agreement
