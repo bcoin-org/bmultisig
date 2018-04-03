@@ -223,7 +223,7 @@ describe('MultisigProposals', function () {
 
     assert.instanceOf(proposal1, Proposal);
 
-    const proposal2 = await mswallet.getProposalTX('proposal-1');
+    const proposal2 = await mswallet.getProposalWithTX('proposal-1');
 
     assert.instanceOf(proposal2, Proposal);
     assert.deepStrictEqual(proposal1, proposal2);
@@ -250,7 +250,8 @@ describe('MultisigProposals', function () {
 
     await mswallet.createProposal('proposal', cosigner1, txoptions);
 
-    const [proposal, mtx] = await mswallet.getProposalMTX('proposal');
+    const proposal = await mswallet.getProposal('proposal');
+    const mtx = await mswallet.getProposalMTX('proposal');
 
     assert.instanceOf(proposal, Proposal);
     assert.instanceOf(mtx, MTX);
@@ -363,7 +364,8 @@ describe('MultisigProposals', function () {
     assert.strictEqual(pending.length, 1);
 
     const approve = async (priv, cosigner) => {
-      const [proposal, mtx] = await mswallet.getProposalMTX('proposal');
+      const proposal = await mswallet.getProposal('proposal');
+      const mtx = await mswallet.getProposalMTX('proposal');
       const paths = await mswallet.getInputPaths(mtx);
 
       // sign transaction cosigner1
