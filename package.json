@@ -28,19 +28,19 @@
   "dependencies": {
     "bclient": "~0.0.2",
     "bcrypto": "~0.2.0",
-    "bdb": "~0.0.3",
+    "bdb": "~0.1.0",
     "blgr": "~0.0.2",
     "bmutex": "~0.0.2",
     "bstring": "~0.0.2",
-    "bufio": "~0.0.3",
+    "bufio": "~0.1.0",
     "bval": "~0.0.2",
-    "bcoin": "bcoin-org/bcoin#9bc81cac",
+    "bcoin": "bcoin-org/bcoin#e093b2b",
     "bweb": "~0.0.2"
   },
   "devDependencies": {
     "eslint": "^4.19.1",
     "istanbul": "^1.1.0-alpha.1",
     "jsdoc": "^3.5.5",
-    "mocha": "^5.0.5"
+    "mocha": "^5.1.0"
   }
 }
