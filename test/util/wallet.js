@@ -84,12 +84,18 @@ exports.fundAddressBlock = async (wdb, address, amount) => {
   return mtx;
 };
 
-// Spend transaction
-exports.spendTransaction = async (wdb, tx) => {
+exports.getDoubleSpendTransaction = (tx) => {
   const mtx = MTX.fromTX(tx);
 
   mtx.outputs = [];
   mtx.addOutput(Script.fromString(''));
+
+  return mtx;
+};
+
+// Spend transaction
+exports.spendTransaction = async (wdb, tx) => {
+  const mtx = exports.getDoubleSpendTransaction(tx);
 
   await wdb.addBlock(exports.nextBlock(wdb), [mtx.toTX()]);
 };
