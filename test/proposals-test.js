@@ -206,6 +206,26 @@ describe('MultisigProposals', function () {
     assert.strictEqual(err.message, message, 'Incorrect error message.');
   });
 
+  it('should get proposal by coin', async () => {
+    await utils.fundWalletBlock(wdb, mswallet, 1);
+
+    const coins = await wallet.getCoins();
+
+    const proposal = await mswallet.createProposal(
+      'proposal',
+      cosigner1,
+      getTXOptions(1)
+    );
+
+    assert.instanceOf(proposal, Proposal);
+
+    const pid = await mswallet.getPIDByOutpoint(coins[0]);
+    const proposal2 = await mswallet.getProposalByOutpoint(coins[0]);
+
+    assert.strictEqual(proposal.id, pid);
+    assert(proposal.equals(proposal2));
+  });
+
   // TODO:
   it('should reject proposal with reorged coins', async () => {
   });
