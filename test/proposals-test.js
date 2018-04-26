@@ -6,6 +6,7 @@
 const assert = require('./util/assert');
 const utils = require('./util/wallet');
 
+// const Logger = require('blgr');
 const bcoin = require('bcoin');
 const {Script, KeyRing, MTX, Amount, hd} = bcoin;
 const WalletDB = bcoin.wallet.WalletDB;
@@ -36,14 +37,26 @@ describe('MultisigProposals', function () {
   let cosigner1, cosigner2;
 
   beforeEach(async () => {
-    wdb = new WalletDB();
+    // const logger = new Logger({
+    //   level: 'debug',
+    //   console: true
+    // });
 
-    const wdbClient = new WalletNodeClient({});
-    wdbClient.wdb = wdb;
+    // await logger.open();
+
+    wdb = new WalletDB({ });
+
+    const wdbClient = new WalletNodeClient({ wdb });
 
     msdb = new MultisigDB({
+      // logger,
       client: wdbClient
     });
+
+    wdb.on('error', () => {});
+    msdb.on('error', () => {});
+
+    msdb.init();
 
     await wdb.open();
     await msdb.open();
@@ -224,10 +237,6 @@ describe('MultisigProposals', function () {
 
     assert.strictEqual(proposal.id, pid);
     assert(proposal.equals(proposal2));
-  });
-
-  // TODO:
-  it('should reject proposal with reorged coins', async () => {
   });
 
   it('should get proposal', async () => {
@@ -439,6 +448,101 @@ describe('MultisigProposals', function () {
 
     assert.strictEqual(rejected.status, Proposal.status.REJECTED);
     assert.strictEqual(pidByOutpoint, -1);
+  });
+
+  it('should reject proposal on mempool double spend', async () => {
+    const txoptions = getTXOptions(1);
+
+    const amount = Amount.fromBTC(1).toValue();
+    const account = await mswallet.getAccount();
+    const mtx = utils.createFundTX(account.receiveAddress(), amount);
+
+    await wdb.addTX(mtx.toTX());
+
+    await mswallet.createProposal(
+      'proposal-1',
+      cosigner1,
+      txoptions
+    );
+
+    const dstx = utils.getDoubleSpendTransaction(mtx);
+
+    await wdb.addTX(dstx.toTX());
+
+    const checkProposal = await mswallet.getProposal('proposal-1');
+
+    assert.instanceOf(checkProposal, Proposal);
+    assert.strictEqual(checkProposal.status, Proposal.status.DBLSPEND);
+  });
+
+  it('should reject proposal on coin spend', async () => {
+    const txoptions = getTXOptions(1);
+    await utils.fundWalletBlock(wdb, mswallet, 1);
+
+    const proposal = await mswallet.createProposal(
+      'proposal-1',
+      cosigner1,
+      txoptions
+    );
+
+    const mtx = await mswallet.getProposalMTX('proposal-1');
+    const paths = await mswallet.getInputPaths(mtx);
+
+    const sign = async (priv) => {
+      mtx.inputs.forEach((input, i) => {
+        const path = paths[i];
+
+        // derive correct priv key
+        const _priv = priv.derive(path.branch).derive(path.index);
+
+        // derive pubkeys
+        const p1 = xpub1.derive(path.branch).derive(path.index);
+        const p2 = xpub2.derive(path.branch).derive(path.index);
+
+        const ring = KeyRing.fromPrivate(_priv.privateKey);
+
+        ring.script = Script.fromMultisig(
+          proposal.m,
+          proposal.n,
+          [p1.publicKey, p2.publicKey]
+        );
+
+        const signed = mtx.sign(ring);
+
+        assert.strictEqual(signed, 1);
+      });
+    };
+
+    sign(priv1);
+    sign(priv2);
+
+    await wdb.addBlock(utils.nextBlock(wdb), [mtx.toTX()]);
+
+    const checkProposal = await mswallet.getProposal('proposal-1');
+
+    assert.instanceOf(checkProposal, Proposal);
+    assert.strictEqual(checkProposal.status, Proposal.status.DBLSPEND);
+  });
+
+  it('should reject proposal on reorg double spend', async () => {
+    const txoptions = getTXOptions(1);
+    const mtx = await utils.fundWalletBlock(wdb, mswallet, 1);
+
+    const proposal1 = await mswallet.createProposal(
+      'proposal-1',
+      cosigner1,
+      txoptions
+    );
+
+    assert.instanceOf(proposal1, Proposal);
+
+    await utils.removeBlock(wdb);
+    await utils.doubleSpendTransaction(wdb, mtx.toTX());
+
+    const checkProposal = await mswallet.getProposal('proposal-1');
+
+    assert.instanceOf(checkProposal, Proposal);
+    assert.strictEqual(checkProposal.status, Proposal.status.DBLSPEND);
   });
 });
 
