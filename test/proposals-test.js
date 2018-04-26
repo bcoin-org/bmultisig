@@ -311,7 +311,7 @@ describe('MultisigProposals', function () {
     assert.instanceOf(proposal2, Proposal);
   });
 
-  it('should fail rejecting rejected proposal', async () => {
+  it('should fail rejecting rejected proposal twice', async () => {
     await utils.fundWalletBlock(wdb, mswallet, 1);
 
     const txoptions = getTXOptions(1);
@@ -330,7 +330,7 @@ describe('MultisigProposals', function () {
     assert.strictEqual(err.message, 'Can not reject non pending proposal.');
   });
 
-  it('should fail approving proposal', async () => {
+  it('should fail approving proposal twice', async () => {
     await utils.fundWalletBlock(wdb, mswallet, 1);
     await utils.fundWalletBlock(wdb, mswallet, 1);
 
@@ -373,7 +373,7 @@ describe('MultisigProposals', function () {
     );
   });
 
-  it('should approve signed proposal.', async () => {
+  it('should approve signed proposal', async () => {
     await utils.fundWalletBlock(wdb, mswallet, 1);
 
     const txoptions = getTXOptions(1);
@@ -418,6 +418,27 @@ describe('MultisigProposals', function () {
 
     await approve(priv1, cosigner1);
     await approve(priv2, cosigner2);
+  });
+
+  it('should recover coins on rejection', async () => {
+    await utils.fundWalletBlock(wdb, mswallet, 1);
+
+    const proposal = await mswallet.createProposal(
+      'proposal',
+      cosigner1,
+      getTXOptions(1)
+    );
+
+    assert.instanceOf(proposal, Proposal);
+
+    const coins = await mswallet.getProposalCoins('proposal');
+    const rejected = await mswallet.rejectProposal('proposal', cosigner1);
+
+    const coin = coins[0];
+    const pidByOutpoint = await mswallet.getPIDByOutpoint(coin);
+
+    assert.strictEqual(rejected.status, Proposal.status.REJECTED);
+    assert.strictEqual(pidByOutpoint, -1);
   });
 });
 
