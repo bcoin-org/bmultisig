@@ -94,7 +94,7 @@ exports.getDoubleSpendTransaction = (tx) => {
 };
 
 // Spend transaction
-exports.spendTransaction = async (wdb, tx) => {
+exports.doubleSpendTransaction = async (wdb, tx) => {
   const mtx = exports.getDoubleSpendTransaction(tx);
 
   await wdb.addBlock(exports.nextBlock(wdb), [mtx.toTX()]);

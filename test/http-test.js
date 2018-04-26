@@ -49,14 +49,14 @@ const walletNode = new wallet.Node({
   nodeApiKey: options.apiKey,
   adminToken: ADMIN_TOKEN,
 
-  //logLevel: 'debug',
+  // logLevel: 'debug',
 
   plugins: [require('../lib/bmultisig')]
 });
 
 const wdb = walletNode.wdb;
 
-walletNode.on('error', err => console.log(err));
+// walletNode.on('error', err => console.error(err));
 
 const TEST_XPUB_PATH = 'm/44\'/0\'/0\'';
 
