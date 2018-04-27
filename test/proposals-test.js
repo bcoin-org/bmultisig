@@ -201,7 +201,7 @@ describe('MultisigProposals', function () {
     await wdb.open();
     await msdb.open();
 
-    mswallet = await msdb.get(TEST_WALLET_ID);
+    mswallet = await msdb.getWallet(TEST_WALLET_ID);
 
     let err;
     try {
