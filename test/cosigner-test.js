@@ -93,4 +93,20 @@ describe('Cosigner', function () {
       );
     }
   });
+
+  it('should serialize json', () => {
+    const cosigner = new Cosigner(TEST_OPTIONS);
+
+    // no details
+    const json1 = cosigner.toJSON();
+    const cosigner1 = Cosigner.fromJSON(json1, false);
+
+    assert.strictEqual(cosigner.equals(cosigner1, false), true);
+
+    // with details
+    const json2 = cosigner.toJSON(true);
+    const cosigner2 = Cosigner.fromJSON(json2, true);
+
+    assert.strictEqual(cosigner.equals(cosigner2, true), true);
+  });
 });
