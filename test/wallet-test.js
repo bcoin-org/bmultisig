@@ -166,7 +166,7 @@ describe('MultisigWallet', function () {
     const mswallet = await msdb.create(WALLET_OPTIONS, cosigner);
     const wallet = mswallet.wallet;
 
-    const mswalletInfo = await msdb.get(WALLET_OPTIONS.id);
+    const mswalletInfo = await msdb.getWallet(WALLET_OPTIONS.id);
     const walletInfo = mswalletInfo.wallet;
 
     assert.deepStrictEqual(wallet, walletInfo);
@@ -175,7 +175,7 @@ describe('MultisigWallet', function () {
     // clear cache and try again
     msdb.unregister(mswallet);
 
-    const mswalletInfo2 = await msdb.get(WALLET_OPTIONS.id);
+    const mswalletInfo2 = await msdb.getWallet(WALLET_OPTIONS.id);
 
     assert.deepStrictEqual(
       mswalletInfo.toJSON(),
@@ -184,8 +184,8 @@ describe('MultisigWallet', function () {
   });
 
   it('should return null on non existing wallet', async () => {
-    const mswallet = await msdb.get('non-existing');
-    const nonMultisigWallet = await msdb.get('primary');
+    const mswallet = await msdb.getWallet('non-existing');
+    const nonMultisigWallet = await msdb.getWallet('primary');
 
     assert.typeOf(mswallet, 'null');
     assert.typeOf(nonMultisigWallet, 'null');
@@ -228,7 +228,7 @@ describe('MultisigWallet', function () {
   it('should remove multisig wallet', async () => {
     await msdb.create(WALLET_OPTIONS, new Cosigner());
     const removed = await msdb.remove(WALLET_OPTIONS.id);
-    const wallet = await msdb.get(WALLET_OPTIONS.id);
+    const wallet = await msdb.getWallet(WALLET_OPTIONS.id);
     const wallets = await msdb.getWallets();
 
     assert.strictEqual(removed, true);
