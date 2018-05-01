@@ -6,6 +6,7 @@
 const assert = require('./util/assert');
 const MultisigDB = require('../lib/multisigdb');
 const layout = require('../lib/layout').msdb;
+const WalletNullClient = require('../lib/walletnullclient');
 
 /*
  * Most test cases are handled by http-test
@@ -13,18 +14,16 @@ const layout = require('../lib/layout').msdb;
 
 describe('Multisig Database', function () {
   it('should open database', async () => {
-    const msdb = new MultisigDB({
-      client: {}
-    });
+    const client = new WalletNullClient();
+    const msdb = new MultisigDB({ client });
 
     await msdb.open();
     await msdb.close();
   });
 
   it('should create version entry', async () => {
-    const msdb = new MultisigDB({
-      client: {}
-    });
+    const client = new WalletNullClient();
+    const msdb = new MultisigDB({ client });
     const db = msdb.db;
 
     await msdb.open();

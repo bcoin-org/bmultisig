@@ -46,8 +46,9 @@ describe('MultisigWallet', function () {
   beforeEach(async () => {
     wdb = new WalletDB();
 
-    const wdbClient = new WalletNodeClient({});
-    wdbClient.wdb = wdb;
+    const wdbClient = new WalletNodeClient({
+      wdb
+    });
 
     msdb = new MultisigDB({
       client: wdbClient

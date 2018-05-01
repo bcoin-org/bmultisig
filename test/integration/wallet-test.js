@@ -114,8 +114,7 @@ describe('HTTP', function () {
 
     let err;
     try {
-      const res = await msclient.getInfo('test');
-      console.log(res);
+      await msclient.getInfo('test');
     } catch (e) {
       err = e;
     }
