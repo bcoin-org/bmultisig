@@ -1,6 +1,6 @@
 {
   "name": "bmultisig",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Bcoin wallet plugin for multi signature transaction proposals",
   "main": "./lib/bmultisig",
   "bin": {
