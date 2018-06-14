@@ -539,6 +539,9 @@ describe('MultisigProposals', function () {
     await utils.removeBlock(wdb);
     await utils.doubleSpendTransaction(wdb, mtx.toTX());
 
+    // TODO: remove timeout after events
+    await new Promise(r => setTimeout(r, 100));
+
     const checkProposal = await mswallet.getProposal('proposal-1');
 
     assert.instanceOf(checkProposal, Proposal);
