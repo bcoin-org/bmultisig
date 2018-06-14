@@ -1,6 +1,6 @@
 {
   "name": "bmultisig",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Bcoin wallet plugin for multi signature transaction proposals",
   "main": "./lib/bmultisig",
   "bin": {
@@ -13,7 +13,7 @@
     "lint": "eslint lib/ test/ || exit 0",
     "test": "mocha --reporter spec test/*-test.js",
     "docs": "jsdoc -c jsdoc.json",
-    "cover": "istanbul cover node_modules/.bin/_mocha  -- --reporter spec test/*-test.js",
+    "test-ci": "istanbul cover node_modules/.bin/_mocha --report lcovonly -- --reporter spec test/*.js",
     "clean": "rm -rf coverage && rm -rf docs"
   },
   "keywords": [
@@ -26,22 +26,22 @@
   "author": "bcoin",
   "license": "MIT",
   "dependencies": {
-    "bclient": "~0.0.2",
-    "bcoin": "bcoin-org/bcoin#e093b2b",
-    "bcrypto": "~0.2.0",
-    "bdb": "~0.1.0",
-    "bevent": "0.0.2",
-    "blgr": "~0.0.2",
-    "bmutex": "~0.0.2",
-    "bstring": "~0.0.2",
-    "bufio": "~0.1.0",
-    "bval": "~0.0.2",
-    "bweb": "~0.0.2"
+    "bclient": "~0.1.0",
+    "bcoin": "bcoin-org/bcoin",
+    "bcrypto": "~0.3.2",
+    "bdb": "~0.2.0",
+    "bevent": "~0.1.0",
+    "blgr": "~0.1.0",
+    "bmutex": "~0.1.0",
+    "bstring": "~0.1.0",
+    "bufio": "~0.2.0",
+    "bval": "~0.1.0",
+    "bweb": "~0.1.0"
   },
   "devDependencies": {
     "eslint": "^4.19.1",
     "istanbul": "^1.1.0-alpha.1",
     "jsdoc": "^3.5.5",
-    "mocha": "^5.1.0"
+    "mocha": "^5.2.0"
   }
 }
