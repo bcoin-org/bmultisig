@@ -1,5 +1,8 @@
 # bmultisig
 
+[![CircleCi Status][circleci-status-img]][circleci-status-url]
+[![Coverage Status][coverage-status-img]][coverage-status-url]
+
 bmultisig is a [bcoin][bcoin] plugin which adds multisig wallet http endpoints and events to bwallet for payment proposals.
 
 ## Note
@@ -26,3 +29,8 @@ Copyright (c) 2018, The Bcoin Developers (MIT License)
 See LICENSE for more info.
 
 [bcoin]: https://github.com/bcoin-org/bcoin
+
+[coverage-status-img]: https://codecov.io/gh/bcoin-org/bmultisig/badge.svg?branch=master
+[coverage-status-url]: https://codecov.io/gh/bcoin-org/bmultisig?branch=master
+[circleci-status-img]: https://circleci.com/gh/bcoin-org/bmultisig/tree/master.svg?style=shield
+[circleci-status-url]: https://circleci.com/gh/bcoin-org/bmultisig/tree/master
