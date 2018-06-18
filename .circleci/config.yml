@@ -51,7 +51,7 @@ jobs:
           - v1-dependencies-
       - run:
           name: Lint
-          command: npm run lint
+          command: npm run lint-ci
 
 workflows:
   version: 2

@@ -11,6 +11,7 @@
   },
   "scripts": {
     "lint": "eslint lib/ test/ || exit 0",
+    "lint-ci": "eslint lib/ test/",
     "test": "mocha --reporter spec test/*-test.js",
     "docs": "jsdoc -c jsdoc.json",
     "test-ci": "istanbul cover node_modules/.bin/_mocha --report lcovonly -- --reporter spec test/*.js",
