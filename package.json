@@ -26,7 +26,7 @@
   "author": "bcoin",
   "license": "MIT",
   "dependencies": {
-    "bclient": "~0.0.2",
+    "bclient": "~0.1.0",
     "bcoin": "bcoin-org/bcoin#e093b2b",
     "bcrypto": "~0.2.0",
     "bdb": "~0.1.0",
