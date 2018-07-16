@@ -172,7 +172,7 @@ describe('HTTP', function () {
     const xpub = xpub2.xpubkey(network);
     const cosignerName = 'cosigner2';
 
-    const mswallet = await multisigClient.join(WALLET_OPTIONS.id, {
+    const mswallet = await multisigClient.joinWallet(WALLET_OPTIONS.id, {
       cosignerName, joinKey, xpub
     });
 
