@@ -642,7 +642,7 @@ describe('HTTP', function () {
       assert.strictEqual(client.multisigPath, multisigPath);
     });
 
-    it('should parse root path from multisig path', () => {
+    it('should parse root path from multisig path (trailing slash)', () => {
       const path = '/test';
       const multisigPath = '/test/multisig/';
 
