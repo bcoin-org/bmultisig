@@ -33,7 +33,7 @@ const node = new Node({
   listen: true,
   loader: require,
 
-  plugins: [require('../lib/bmultisig')]
+  plugins: [require('../lib/plugin')]
 });
 
 process.on('unhandledRejection', (err, promise) => {
