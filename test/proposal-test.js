@@ -4,7 +4,7 @@
 'use strict';
 
 const assert = require('./util/assert');
-const Proposal = require('../lib/proposal');
+const Proposal = require('../lib/primitives/proposal');
 const Cosigner = require('../lib/primitives/cosigner');
 
 const TEST_OPTIONS = {

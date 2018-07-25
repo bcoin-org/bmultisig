@@ -10,7 +10,7 @@ const bcoin = require('bcoin');
 const {Network, FullNode} = bcoin;
 const {Script, CoinView, Coin, MTX, TX, Amount, KeyRing} = bcoin;
 const {wallet, hd} = bcoin;
-const Proposal = require('../lib/proposal');
+const Proposal = require('../lib/primitives/proposal');
 
 const MultisigClient = require('../lib/client');
 const {WalletClient} = require('bclient');
