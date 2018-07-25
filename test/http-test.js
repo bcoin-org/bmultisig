@@ -51,7 +51,7 @@ const walletNode = new wallet.Node({
 
   // logLevel: 'debug',
 
-  plugins: [require('../lib/bmultisig')]
+  plugins: [require('../lib/plugin')]
 });
 
 const wdb = walletNode.wdb;

@@ -5,7 +5,7 @@
 
 const assert = require('./util/assert');
 const Proposal = require('../lib/proposal');
-const Cosigner = require('../lib/cosigner');
+const Cosigner = require('../lib/primitives/cosigner');
 
 const TEST_OPTIONS = {
   id: 1,

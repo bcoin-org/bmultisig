@@ -4,7 +4,7 @@
 'use strict';
 
 const assert = require('./util/assert');
-const Cosigner = require('../lib/cosigner');
+const Cosigner = require('../lib/primitives/cosigner');
 
 // This path does not do much.
 const TEST_PATH = 'm/44\'/0\'/0\'/0/0';

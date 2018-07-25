@@ -12,7 +12,7 @@ const {Mnemonic} = hd;
 const MultisigDB = require('../lib/multisigdb');
 const WalletNodeClient = require('../lib/walletclient');
 const MultisigWallet = require('../lib/wallet');
-const Cosigner = require('../lib/cosigner');
+const Cosigner = require('../lib/primitives/cosigner');
 
 // This path does not do much.
 const TEST_XPUB_PATH = 'm/44\'/0\'/0\'';

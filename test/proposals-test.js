@@ -12,7 +12,7 @@ const {Script, KeyRing, MTX, Amount, hd} = bcoin;
 const WalletDB = bcoin.wallet.WalletDB;
 const WalletNodeClient = require('../lib/walletclient');
 const MultisigDB = require('../lib/multisigdb');
-const Cosigner = require('../lib/cosigner');
+const Cosigner = require('../lib/primitives/cosigner');
 const Proposal = require('../lib/proposal');
 
 const TEST_XPUB_PATH = 'm/44\'/0\'/0\'';
