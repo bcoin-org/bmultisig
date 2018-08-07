@@ -17,7 +17,8 @@ describe('MultisigMTX', function () {
     it(`should get input signature (witness=${witness})`, async () => {
       const ring = createRing(witness);
       const ring2 = createRing(witness);
-      const {mtx, coin} = await createSpendingTX(ring, BTC);
+      const {mtx, coins} = await createSpendingTX(ring, BTC);
+      const coin = coins[0];
 
       // sign duplicate tx
       const signedMTX = mtx.clone();
@@ -82,7 +83,8 @@ describe('MultisigMTX', function () {
     it(`should get input signature multisig (witness=${witness})`, async () => {
       // generate keys
       const [ring1, ring2] = createMultisigRings(witness);
-      const {mtx, coin} = await createSpendingTX(ring1, BTC);
+      const {mtx, coins} = await createSpendingTX(ring1, BTC);
+      const coin = coins[0];
 
       const signedMTX = mtx.clone();
       signedMTX.view = mtx.view;
@@ -132,6 +134,39 @@ describe('MultisigMTX', function () {
 
       assert.bufferEqual(sig, sig2);
     });
+
+    it(`should get signatures for rings (witness=${witness})`, async () => {
+      // NOTE: should we accept multiple rings
+      // and arrays of signatures ?
+      // It will results signatures to be inside array
+      const [ring1, ring2] = createMultisigRings(witness);
+      const {mtx} = await createSpendingTX(ring1, BTC, 2);
+
+      const sigs1 = mtx.getSignatures(ring1);
+      const sigs2 = mtx.getSignatures(ring2);
+
+      mtx.applySignatures(ring1, sigs1, true);
+      mtx.applySignatures(ring2, sigs2, true);
+
+      assert.strictEqual(mtx.isSigned(), true, 'MTX is not signed.');
+      assert.strictEqual(mtx.verify(), true, 'MTX verification failed.');
+    });
+
+    it(`should empty inputs for transaction (witness=${witness})`, async () => {
+      const [ring1, ring2] = createMultisigRings(witness);
+      const {mtx} = await createSpendingTX(ring1, BTC, 2);
+
+      mtx.sign([ring1, ring2]);
+
+      mtx.emptyInputs();
+
+      for (const input of mtx.inputs) {
+        const {script, witness} = input;
+
+        assert.strictEqual(script.length, 0, 'Script is not empty.');
+        assert.strictEqual(witness.length, 0, 'Witness is not empty.');
+      }
+    });
   }
 });
 
@@ -175,31 +210,38 @@ function createRing(witness) {
 
 /*
  * Create spending transaction
- * 1 input, send from ourselves to ourselves.
+ * send from ourselves to ourselves.
+ * total value will be value * coins
  * @ignore
  * @param {KeyRing} ring
  * @param {Number} value
+ * @param {Number} n - number of inputs to use
  * @return {MultisigMTX}
  */
 
-async function createSpendingTX(ring, value) {
+async function createSpendingTX(ring, value, n = 1) {
   const address = ring.getAddress();
-  const fundTX = utils.createFundTX(address, value);
-
-  const coin = Coin.fromTX(fundTX, 0, -1);
+  const coins = [];
   const mtx = new MultisigMTX();
 
+  for (let i = 0; i < n; i++) {
+    const fundTX = utils.createFundTX(address, value);
+    const coin = Coin.fromTX(fundTX, 0, -1);
+
+    coins.push(coin);
+  }
+
   // send money to ourselves.
-  mtx.addOutput({ address, value });
+  mtx.addOutput({
+    address: address,
+    value: value * n
+  });
 
   // fund tx
-  await mtx.fund([coin], {
+  await mtx.fund(coins, {
     changeAddress: address,
     rate: 0
   });
 
-  return {
-    mtx: mtx,
-    coin: coin
-  };
+  return { mtx, coins };
 }
