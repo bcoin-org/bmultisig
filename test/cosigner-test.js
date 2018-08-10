@@ -6,7 +6,6 @@
 const assert = require('./util/assert');
 const Cosigner = require('../lib/primitives/cosigner');
 const {hd} = require('bcoin');
-const {HDPublicKey} = hd;
 
 // This path does not do much.
 const TEST_PATH = 'm/44\'/0\'/0\'/0/0';
