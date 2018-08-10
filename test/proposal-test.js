@@ -6,6 +6,7 @@
 const assert = require('./util/assert');
 const Proposal = require('../lib/primitives/proposal');
 const Cosigner = require('../lib/primitives/cosigner');
+const {hd} = require('bcoin');
 
 const TEST_OPTIONS = {
   id: 1,
@@ -14,6 +15,8 @@ const TEST_OPTIONS = {
   n: 3,
   author: 0
 };
+
+const TEST_KEY = hd.generate().toPublic();
 
 describe('Proposal', function () {
   it('should create proposal from option', () => {
@@ -51,12 +54,14 @@ describe('Proposal', function () {
     const proposal = Proposal.fromOptions(TEST_OPTIONS);
     const cosigner1 = Cosigner.fromOptions({
       id: 0,
-      name: 'cosigner1'
+      name: 'cosigner1',
+      key: TEST_KEY
     });
 
     const cosigner2 = Cosigner.fromOptions({
       id: 1,
-      name: 'cosigner2'
+      name: 'cosigner2',
+      key: TEST_KEY
     });
 
     proposal.reject(cosigner1);
@@ -86,12 +91,14 @@ describe('Proposal', function () {
     const proposal = Proposal.fromOptions(TEST_OPTIONS);
     const cosigner1 = Cosigner.fromOptions({
       id: 0,
-      name: 'cosigner1'
+      name: 'cosigner1',
+      key: TEST_KEY
     });
 
     const cosigner2 = Cosigner.fromOptions({
       id: 1,
-      name: 'cosigner2'
+      name: 'cosigner2',
+      key: TEST_KEY
     });
 
     proposal.approve(cosigner1);
