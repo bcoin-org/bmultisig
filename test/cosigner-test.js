@@ -5,11 +5,14 @@
 
 const assert = require('./util/assert');
 const Cosigner = require('../lib/primitives/cosigner');
+const {hd} = require('bcoin');
+const {HDPublicKey} = hd;
 
 // This path does not do much.
 const TEST_PATH = 'm/44\'/0\'/0\'/0/0';
-
 const TEST_TOKEN = Buffer.alloc(32);
+const TEST_KEY = hd.generate().toPublic();
+const NETWORK = 'main';
 
 // commonly used test case
 const TEST_OPTIONS = {
@@ -17,7 +20,8 @@ const TEST_OPTIONS = {
   tokenDepth: 0,
   token: TEST_TOKEN,
   name: 'test1',
-  path: TEST_PATH
+  path: TEST_PATH,
+  key: TEST_KEY
 };
 
 // its serialization
@@ -27,6 +31,7 @@ const TEST_RAW = Buffer.from(
   + TEST_TOKEN.toString('hex') // token
   + '05' + '7465737431' // name
   + '0f' + '6d2f3434272f30272f30272f302f30' // path
+  + TEST_KEY.toRaw(NETWORK).toString('hex')
 , 'hex');
 
 describe('Cosigner', function () {
@@ -48,14 +53,18 @@ describe('Cosigner', function () {
       assert.strictEqual(cosigner.path, options.path,
         'path was not set correctly.'
       );
+
+      assert.strictEqual(cosigner.key.equals(TEST_OPTIONS.key), true,
+        'Public key was not set correctly.'
+      );
     }
   });
 
   it('should reserialize correctly', () => {
     const options = TEST_OPTIONS;
     const cosigner1 = new Cosigner(options);
-    const data = cosigner1.toRaw();
-    const cosigner2 = Cosigner.fromRaw(data);
+    const data = cosigner1.toRaw(NETWORK);
+    const cosigner2 = Cosigner.fromRaw(data, NETWORK);
 
     assert.deepStrictEqual(cosigner1, cosigner2);
   });
@@ -65,7 +74,7 @@ describe('Cosigner', function () {
     const expected = TEST_RAW;
 
     const cosigner = new Cosigner(options);
-    const serialized = cosigner.toRaw();
+    const serialized = cosigner.toRaw(NETWORK);
 
     assert.bufferEqual(serialized, expected,
       'Cosigner was not serialized correctly'
