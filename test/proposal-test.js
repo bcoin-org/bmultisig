@@ -6,6 +6,7 @@
 const assert = require('./util/assert');
 const Proposal = require('../lib/primitives/proposal');
 const Cosigner = require('../lib/primitives/cosigner');
+const {SignaturesRecord} = Proposal;
 const {hd} = require('bcoin');
 
 const TEST_OPTIONS = {
@@ -151,5 +152,69 @@ describe('Proposal', function () {
 
     assert(err);
     assert.strictEqual(err.message, 'Can not reject non pending proposal.');
+  });
+
+  describe('SignaturesRecord', function () {
+    it('should create empty signature record', () => {
+      const sigRecord = new SignaturesRecord();
+
+      assert.strictEqual(sigRecord.signatures.size, 0);
+      assert.strictEqual(sigRecord.toSignatures().length, 0);
+    });
+
+    it('should reserialize signatures record', () => {
+      const sigRecord = new SignaturesRecord();
+      const raw = sigRecord.toRaw();
+      const sigRecord2 = SignaturesRecord.fromRaw(raw);
+
+      assert.bufferEqual(raw, Buffer.from([0x00, 0x00]));
+      assert.strictEqual(sigRecord.equals(sigRecord2), true);
+    });
+
+    it('should create signature record', () => {
+      const sigRecord = SignaturesRecord.fromSignatures([
+        Buffer.alloc(32, 0),
+        Buffer.alloc(32, 0)
+      ]);
+
+      assert.strictEqual(sigRecord.signatures.size, 2);
+    });
+
+    it('should reserialize signature record', () => {
+      const sigRecord = SignaturesRecord.fromSignatures([
+        Buffer.alloc(2, 0),
+        Buffer.alloc(2, 0)
+      ]);
+
+      const raw = sigRecord.toRaw();
+
+      assert.bufferEqual(
+        raw,
+        Buffer.from('02020002000001020000', 'hex')
+      );
+
+      const sigRecord2 = SignaturesRecord.fromRaw(raw);
+      assert.strictEqual(sigRecord.equals(sigRecord2), true);
+    });
+
+    it('should reserialize signature record with null elements', () => {
+      const sigRecord = SignaturesRecord.fromSignatures([
+        Buffer.alloc(1, 0),
+        null, // null element
+        null, // another null element
+        Buffer.alloc(5, 0)
+      ]);
+
+      const raw = sigRecord.toRaw();
+
+      assert.bufferEqual(
+        raw,
+        Buffer.from('040200010003050000000000', 'hex')
+      );
+
+      const sigRecord2 = SignaturesRecord.fromRaw(raw);
+
+      assert.strictEqual(sigRecord.equals(sigRecord2), true);
+    });
   });
 });
