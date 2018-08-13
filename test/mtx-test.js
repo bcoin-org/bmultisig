@@ -144,9 +144,20 @@ describe('MultisigMTX', function () {
 
       const sigs1 = mtx.getSignatures(ring1);
       const sigs2 = mtx.getSignatures(ring2);
+      const rings1 = [ring1, ring1];
+      const rings2 = [ring2, ring2];
 
-      mtx.applySignatures(ring1, sigs1, true);
-      mtx.applySignatures(ring2, sigs2, true);
+      mtx.applySignatures(rings1, sigs1, true);
+      mtx.applySignatures(rings2, sigs2, true);
+
+      assert.strictEqual(mtx.checkSignatures(rings1, sigs1), 2);
+      assert.strictEqual(mtx.checkSignatures(rings2, sigs2), 2);
+
+      assert.strictEqual(mtx.checkSignatures([ring1, ring2], sigs1), 1);
+      assert.strictEqual(mtx.checkSignatures([ring1, ring2], sigs2), 1);
+
+      assert.strictEqual(mtx.checkSignatures(rings2, sigs1), 0);
+      assert.strictEqual(mtx.checkSignatures(rings1, sigs2), 0);
 
       assert.strictEqual(mtx.isSigned(), true, 'MTX is not signed.');
       assert.strictEqual(mtx.verify(), true, 'MTX verification failed.');
