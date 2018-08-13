@@ -6,7 +6,7 @@
 const assert = require('./util/assert');
 const Proposal = require('../lib/primitives/proposal');
 const Cosigner = require('../lib/primitives/cosigner');
-const {SignaturesRecord} = Proposal;
+const {ApprovedRecord, SignaturesRecord} = Proposal;
 const {hd} = require('bcoin');
 
 const TEST_OPTIONS = {
@@ -215,6 +215,72 @@ describe('Proposal', function () {
       const sigRecord2 = SignaturesRecord.fromRaw(raw);
 
       assert.strictEqual(sigRecord.equals(sigRecord2), true);
+    });
+  });
+
+  describe('ApprovedRecord', function () {
+    it('should create empty record', () => {
+      const approvedRecord = new ApprovedRecord();
+
+      assert.strictEqual(approvedRecord.approvals.size, 0);
+    });
+
+    it('should reserialize empty record', () => {
+      const approvedRecord = new ApprovedRecord();
+      const raw = approvedRecord.toRaw();
+
+      assert.bufferEqual(
+        raw,
+        Buffer.from([0x00])
+      );
+
+      const approvedRecord2 = ApprovedRecord.fromRaw(raw);
+
+      assert.strictEqual(approvedRecord.equals(approvedRecord2), true);
+    });
+
+    it('should reserialize approved record', () => {
+      const sigRecord = new SignaturesRecord();
+      const approvedRecord = new ApprovedRecord();
+
+      approvedRecord.set(0, sigRecord);
+
+      const raw = approvedRecord.toRaw();
+      assert.bufferEqual(
+        raw,
+        Buffer.from('01000000', 'hex')
+      );
+
+      const approvedRecord2 = ApprovedRecord.fromRaw(raw);
+
+      assert.strictEqual(approvedRecord.equals(approvedRecord2), true);
+    });
+
+    it('should reserialize approved record with more sig records', () => {
+      const sigs1 = [Buffer.alloc(1, 0), null, null, Buffer.alloc(5, 0)];
+      const sigs2 = [Buffer.alloc(2, 0), Buffer.alloc(2, 0)];
+
+      const sigRecord1 = SignaturesRecord.fromSignatures(sigs1);
+      const sigRecord2 = SignaturesRecord.fromSignatures(sigs2);
+
+      const hexSig1 = sigRecord1.toHex();
+      const hexSig2 = sigRecord2.toHex();
+
+      const approvedRecord1 = new ApprovedRecord();
+
+      approvedRecord1.set(0, sigRecord1);
+      approvedRecord1.set(1, sigRecord2);
+
+      const raw = approvedRecord1.toRaw();
+
+      assert.bufferEqual(
+        raw,
+        Buffer.from(`0200${hexSig1}01${hexSig2}`, 'hex')
+      );
+
+      const approvedRecord2 = ApprovedRecord.fromRaw(raw);
+
+      assert.strictEqual(approvedRecord1.equals(approvedRecord2), true);
     });
   });
 });
