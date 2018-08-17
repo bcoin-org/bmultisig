@@ -15,7 +15,6 @@ const WalletNodeClient = require('../lib/walletclient');
 const MultisigDB = require('../lib/multisigdb');
 const Cosigner = require('../lib/primitives/cosigner');
 const Proposal = require('../lib/primitives/proposal');
-const MultisigMTX = require('../lib/primitives/mtx');
 
 const TEST_WALLET_ID = 'test';
 const TEST_COSIGNER_1 = 'cosigner1';
@@ -446,7 +445,7 @@ describe('MultisigProposals', function () {
     const rings = testUtils.getMTXRings(mtx, paths, priv1, [xpub1, xpub2], 2);
     const signatures = testUtils.getMTXSignatures(mtx, rings);
 
-    const res = await mswallet.approveProposal(
+    await mswallet.approveProposal(
       'proposal',
       cosigner1,
       signatures
@@ -475,7 +474,6 @@ describe('MultisigProposals', function () {
     assert.strictEqual(pending.length, 1);
 
     const approve = async (priv, cosigner) => {
-      const proposal = await mswallet.getProposal('proposal');
       const mtx = await mswallet.getProposalMTX('proposal');
       const paths = await mswallet.getInputPaths(mtx);
 

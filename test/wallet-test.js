@@ -362,7 +362,8 @@ describe('MultisigWallet', function () {
       n: 2
     };
 
-    const cosigner = Cosigner.fromOptions({ name: 'cosigner1', key: getPubKey() });
+    const xpub = getPubKey();
+    const cosigner = Cosigner.fromOptions({ name: 'cosigner1', key: xpub });
     const mswallet = await msdb.create(options, cosigner);
     assert.strictEqual(mswallet.isInitialized(), false);
 

@@ -6,7 +6,6 @@ const MultisigMTX = require('../../lib/primitives/mtx');
 
 exports.getMTXSignatures = getMTXSignatures;
 
-
 /**
  * Get MTX Signatures
  * @param {MTX} mtx

@@ -9,10 +9,9 @@ const testUtils = require('./util/utils');
 
 const bcoin = require('bcoin');
 const {Network, FullNode} = bcoin;
-const {Script, CoinView, Coin, MTX, TX, Amount, KeyRing} = bcoin;
+const {MTX, TX, Amount, KeyRing} = bcoin;
 const {wallet, hd} = bcoin;
 const Proposal = require('../lib/primitives/proposal');
-const MultisigMTX = require('../lib/primitives/mtx');
 
 const MultisigClient = require('../lib/client');
 const {WalletClient} = require('bclient');
@@ -58,9 +57,7 @@ const walletNode = new wallet.Node({
 
 const wdb = walletNode.wdb;
 
-//walletNode.on('error', err => console.error(err));
-
-const TEST_XPUB_PATH = 'm/44\'/0\'/0\'';
+// walletNode.on('error', err => console.error(err));
 
 const WALLET_OPTIONS = {
   m: 2,
@@ -86,8 +83,8 @@ describe('HTTP', function () {
   let testWalletClient2;
   let joinKey;
 
-  const priv1 = getPrivKey().deriveAccount(44, 0, 0)
-  const priv2 = getPrivKey().deriveAccount(44, 0, 0)
+  const priv1 = getPrivKey().deriveAccount(44, 0, 0);
+  const priv2 = getPrivKey().deriveAccount(44, 0, 0);
   const xpub1 = priv1.toPublic();
   const xpub2 = priv2.toPublic();
 
@@ -493,7 +490,6 @@ describe('HTTP', function () {
 
     const mtx = MTX.fromJSON(txinfo.tx);
     const paths = txinfo.paths;
-    const scripts = txinfo.scripts;
 
     const rings = testUtils.getMTXRings(mtx, paths, priv1, [xpub1, xpub2], 2);
 
@@ -530,7 +526,6 @@ describe('HTTP', function () {
 
     const mtx = MTX.fromJSON(txinfo.tx);
     const paths = txinfo.paths;
-    const scripts = txinfo.scripts;
 
     const rings = testUtils.getMTXRings(mtx, paths, priv2, [xpub1, xpub2], 2);
 
@@ -542,8 +537,6 @@ describe('HTTP', function () {
     }
 
     const signatures = testUtils.getMTXSignatures(mtx, rings);
-
-
     const proposal = await testWalletClient2.approveProposal(
       WALLET_OPTIONS.id,
       'proposal2',
