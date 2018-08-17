@@ -142,8 +142,8 @@ describe('MultisigMTX', function () {
       const [ring1, ring2] = createMultisigRings(witness);
       const {mtx} = await createSpendingTX(ring1, BTC, 2);
 
-      const sigs1 = mtx.getSignatures(ring1);
-      const sigs2 = mtx.getSignatures(ring2);
+      const sigs1 = mtx.getSignatures([ring1, ring1]);
+      const sigs2 = mtx.getSignatures([ring2, ring2]);
       const rings1 = [ring1, ring1];
       const rings2 = [ring2, ring2];
 
