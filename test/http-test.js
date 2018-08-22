@@ -465,7 +465,7 @@ describe('HTTP', function () {
     const txinfo = await testWalletClient1.getProposalMTX(
       WALLET_OPTIONS.id,
       'proposal2',
-      { path: true }
+      { paths: true }
     );
 
     const mtx = MTX.fromJSON(txinfo.tx);
@@ -483,7 +483,7 @@ describe('HTTP', function () {
       WALLET_OPTIONS.id,
       'proposal2',
       {
-        path: true,
+        paths: true,
         scripts: true
       }
     );
@@ -519,7 +519,7 @@ describe('HTTP', function () {
       WALLET_OPTIONS.id,
       'proposal2',
       {
-        path: true,
+        paths: true,
         scripts: true
       }
     );
