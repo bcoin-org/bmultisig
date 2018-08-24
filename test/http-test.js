@@ -537,20 +537,41 @@ describe('HTTP', function () {
     }
 
     const signatures = testUtils.getMTXSignatures(mtx, rings);
+
     const proposal = await testWalletClient2.approveProposal(
       WALLET_OPTIONS.id,
       'proposal2',
       signatures
     );
 
-    await wdb.addBlock(walletUtils.nextBlock(wdb), [mtx.toTX()]);
-    const balance2 = await testWalletClient1.getBalance(WALLET_OPTIONS.id);
-
+    // we are not spending it yet.
+    await wdb.addBlock(walletUtils.nextBlock(wdb), []);
     assert.strictEqual(Amount.fromBTC(1).toValue(), balance1.confirmed);
-    assert.strictEqual(0, balance2.confirmed);
 
     assert.strictEqual(proposal.statusCode, Proposal.status.APPROVED);
     assert.strictEqual(proposal.approvals.length, 2);
+
+    // verify tx is signed
+    const txinfo2 = await testWalletClient2.getProposalMTX(
+      WALLET_OPTIONS.id,
+      'proposal2'
+    );
+
+    const mtx2 = MTX.fromJSON(txinfo2.tx);
+    assert(mtx2.verify(), 'Transaction is not valid.');
+
+    const jsontx = await testWalletClient2.sendProposal(
+      WALLET_OPTIONS.id,
+      'proposal2'
+    );
+
+    assert(jsontx, 'Transaction not found');
+
+    const tx = TX.fromJSON(jsontx);
+
+    await wdb.addBlock(walletUtils.nextBlock(wdb), [tx]);
+    const balance2 = await testWalletClient1.getBalance(WALLET_OPTIONS.id);
+    assert.strictEqual(0, balance2.confirmed);
   });
 
   it('should delete multisig wallet', async () => {
