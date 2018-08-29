@@ -28,8 +28,8 @@ describe('Multisig Database', function () {
 
     await msdb.open();
 
-    const version = await db.get(layout.V.build());
-    const flags = await db.get(layout.O.build());
+    const version = await db.get(layout.V.encode());
+    const flags = await db.get(layout.O.encode());
 
     assert(Buffer.isBuffer(version), 'DB must write version.');
     assert(Buffer.isBuffer(flags), 'DB must write flags.');
