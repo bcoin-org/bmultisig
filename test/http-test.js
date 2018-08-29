@@ -4,11 +4,12 @@
 'use strict';
 
 const assert = require('./util/assert');
-const utils = require('./util/wallet');
+const walletUtils = require('./util/wallet');
+const testUtils = require('./util/utils');
 
 const bcoin = require('bcoin');
 const {Network, FullNode} = bcoin;
-const {Script, CoinView, Coin, MTX, TX, Amount, KeyRing} = bcoin;
+const {MTX, TX, Amount, KeyRing} = bcoin;
 const {wallet, hd} = bcoin;
 const Proposal = require('../lib/primitives/proposal');
 
@@ -58,8 +59,6 @@ const wdb = walletNode.wdb;
 
 // walletNode.on('error', err => console.error(err));
 
-const TEST_XPUB_PATH = 'm/44\'/0\'/0\'';
-
 const WALLET_OPTIONS = {
   m: 2,
   n: 2,
@@ -84,8 +83,8 @@ describe('HTTP', function () {
   let testWalletClient2;
   let joinKey;
 
-  const priv1 = getPrivKey().derivePath(TEST_XPUB_PATH);
-  const priv2 = getPrivKey().derivePath(TEST_XPUB_PATH);
+  const priv1 = getPrivKey().deriveAccount(44, 0, 0);
+  const priv2 = getPrivKey().deriveAccount(44, 0, 0);
   const xpub1 = priv1.toPublic();
   const xpub2 = priv2.toPublic();
 
@@ -353,7 +352,7 @@ describe('HTTP', function () {
     const msWalletDetails = await testWalletClient1.getInfo('test', true);
     const addr = msWalletDetails.account.receiveAddress;
 
-    await utils.fundAddressBlock(wdb, addr, 1);
+    await walletUtils.fundAddressBlock(wdb, addr, 1);
 
     const txoptions = getTXOptions(1);
 
@@ -466,7 +465,7 @@ describe('HTTP', function () {
     const txinfo = await testWalletClient1.getProposalMTX(
       WALLET_OPTIONS.id,
       'proposal2',
-      { path: true }
+      { paths: true }
     );
 
     const mtx = MTX.fromJSON(txinfo.tx);
@@ -484,50 +483,29 @@ describe('HTTP', function () {
       WALLET_OPTIONS.id,
       'proposal2',
       {
-        path: true,
+        paths: true,
         scripts: true
       }
     );
 
     const mtx = MTX.fromJSON(txinfo.tx);
     const paths = txinfo.paths;
-    const scripts = txinfo.scripts;
 
-    // recover coinview
-    const view = new CoinView();
-    for (const input of txinfo.tx.inputs) {
-      if (!input.coin)
+    const rings = testUtils.getMTXRings(mtx, paths, priv1, [xpub1, xpub2], 2);
+
+    for (const ring of rings) {
+      if (!ring)
         continue;
 
-      input.coin.hash = input.prevout.hash;
-      input.coin.index = input.prevout.index;
-      const coin = Coin.fromJSON(input.coin);
-      view.addCoin(coin);
+      ring.witness = true;
     }
 
-    mtx.view = view;
-
-    const value = mtx.getInputValue();
-    assert.strictEqual(value, Amount.fromBTC(1).toValue());
-
-    // cosigner1
-    mtx.inputs.forEach((input, i) => {
-      const path = paths[i];
-      const priv = priv1.derive(path.branch).derive(path.index);
-      const ring = KeyRing.fromPrivate(priv.privateKey);
-      const script = Script.fromRaw(Buffer.from(scripts[i]), 'hex');
-
-      ring.script = script;
-      ring.witness = true;
-
-      const signed = mtx.sign(ring);
-      assert.strictEqual(signed, 1);
-    });
+    const signatures = testUtils.getMTXSignatures(mtx, rings);
 
     const proposal = await testWalletClient1.approveProposal(
       WALLET_OPTIONS.id,
       'proposal2',
-      mtx.toRaw().toString('hex')
+      signatures
     );
 
     assert.strictEqual(proposal.approvals.length, 1);
@@ -541,60 +519,59 @@ describe('HTTP', function () {
       WALLET_OPTIONS.id,
       'proposal2',
       {
-        path: true,
+        paths: true,
         scripts: true
       }
     );
 
     const mtx = MTX.fromJSON(txinfo.tx);
     const paths = txinfo.paths;
-    const scripts = txinfo.scripts;
 
-    // recover coinview
-    const view = new CoinView();
-    for (const input of txinfo.tx.inputs) {
-      if (!input.coin)
+    const rings = testUtils.getMTXRings(mtx, paths, priv2, [xpub1, xpub2], 2);
+
+    for (const ring of rings) {
+      if (!ring)
         continue;
 
-      input.coin.hash = input.prevout.hash;
-      input.coin.index = input.prevout.index;
-      const coin = Coin.fromJSON(input.coin);
-      view.addCoin(coin);
+      ring.witness = true;
     }
 
-    mtx.view = view;
-
-    const value = mtx.getInputValue();
-    assert.strictEqual(value, Amount.fromBTC(1).toValue());
-
-    // cosigner1
-    mtx.inputs.forEach((input, i) => {
-      const path = paths[i];
-      const priv = priv2.derive(path.branch).derive(path.index);
-      const ring = KeyRing.fromPrivate(priv.privateKey);
-      const script = Script.fromRaw(Buffer.from(scripts[i]), 'hex');
-
-      ring.script = script;
-      ring.witness = true;
-
-      const signed = mtx.sign(ring);
-      assert.strictEqual(signed, 1);
-    });
+    const signatures = testUtils.getMTXSignatures(mtx, rings);
 
     const proposal = await testWalletClient2.approveProposal(
       WALLET_OPTIONS.id,
       'proposal2',
-      mtx.toRaw().toString('hex')
+      signatures
     );
 
-    await wdb.addBlock(utils.nextBlock(wdb), [mtx.toTX()]);
-    const balance2 = await testWalletClient1.getBalance(WALLET_OPTIONS.id);
-
+    // we are not spending it yet.
+    await wdb.addBlock(walletUtils.nextBlock(wdb), []);
     assert.strictEqual(Amount.fromBTC(1).toValue(), balance1.confirmed);
-    assert.strictEqual(0, balance2.confirmed);
 
     assert.strictEqual(proposal.statusCode, Proposal.status.APPROVED);
     assert.strictEqual(proposal.approvals.length, 2);
+
+    // verify tx is signed
+    const txinfo2 = await testWalletClient2.getProposalMTX(
+      WALLET_OPTIONS.id,
+      'proposal2'
+    );
+
+    const mtx2 = MTX.fromJSON(txinfo2.tx);
+    assert(mtx2.verify(), 'Transaction is not valid.');
+
+    const jsontx = await testWalletClient2.sendProposal(
+      WALLET_OPTIONS.id,
+      'proposal2'
+    );
+
+    assert(jsontx, 'Transaction not found');
+
+    const tx = TX.fromJSON(jsontx);
+
+    await wdb.addBlock(walletUtils.nextBlock(wdb), [tx]);
+    const balance2 = await testWalletClient1.getBalance(WALLET_OPTIONS.id);
+    assert.strictEqual(0, balance2.confirmed);
   });
 
   it('should delete multisig wallet', async () => {
