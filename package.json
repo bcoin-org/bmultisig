@@ -30,7 +30,7 @@
   "license": "MIT",
   "dependencies": {
     "bclient": "^0.1.6",
-    "bcoin": "~1.0.2",
+    "bcoin": "bcoin-org/bcoin",
     "bcrypto": "^3.0.2",
     "bdb": "^1.1.5",
     "bevent": "^0.1.4",

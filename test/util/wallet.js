@@ -19,9 +19,9 @@ exports.fakeBlock = (height) => {
   const root = hash256.digest(fromU32LE((height | 0x80000000) >>> 0));
 
   return {
-    hash: hash.toString('hex'),
-    prevBlock: prev.toString('hex'),
-    merkleRoot: root.toString('hex'),
+    hash: hash,
+    prevBlock: prev,
+    merkleRoot: root,
     time: 500000000 + (height * (10 * 60)),
     bits: 0,
     nonce: 0,
@@ -34,7 +34,7 @@ exports.fakeBlock = (height) => {
  */
 
 exports.dummyInput = () => {
-  const hash = random.randomBytes(32).toString('hex');
+  const hash = random.randomBytes(32);
   return Input.fromOutpoint(new Outpoint(hash, 0));
 };
 
