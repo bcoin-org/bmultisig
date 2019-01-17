@@ -1,7 +1,6 @@
 all:
 
-lint:
-	@npm run lint
+
 
 docs:
 	@npm run docs
