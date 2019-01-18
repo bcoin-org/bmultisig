@@ -13,7 +13,7 @@ const {hd} = require('bcoin');
 
 const TEST_OPTIONS = {
   id: 1,
-  name: 'test1',
+  memo: 'test1',
   m: 2,
   n: 3,
   author: 0

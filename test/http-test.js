@@ -83,6 +83,8 @@ describe('HTTP', function () {
   let testWalletClient2;
   let joinKey;
 
+  let pid1, pid2; // proposal ids
+
   const priv1 = getPrivKey().deriveAccount(44, 0, 0);
   const priv2 = getPrivKey().deriveAccount(44, 0, 0);
   const xpub1 = priv1.toPublic();
@@ -374,15 +376,16 @@ describe('HTTP', function () {
 
     const proposal = await testWalletClient2.createProposal(
       WALLET_OPTIONS.id,
-      'proposal1',
-      txoptions
+      { memo: 'proposal1', ...txoptions}
     );
 
     const tx = TX.fromRaw(proposal.tx, 'hex');
 
+    pid1 = proposal.id;
+
     assert.instanceOf(tx, TX);
     assert.deepStrictEqual(proposal.author, { id: 1, name: 'cosigner2' });
-    assert.strictEqual(proposal.name, 'proposal1');
+    assert.strictEqual(proposal.memo, 'proposal1');
     assert.strictEqual(proposal.m, WALLET_OPTIONS.m);
     assert.strictEqual(proposal.n, WALLET_OPTIONS.n);
     assert.strictEqual(proposal.statusCode, Proposal.status.PROGRESS);
@@ -399,10 +402,10 @@ describe('HTTP', function () {
   it('should get proposal', async () => {
     const proposal = await testWalletClient1.getProposalInfo(
       WALLET_OPTIONS.id,
-      'proposal1'
+      pid1
     );
 
-    assert.strictEqual(proposal.name, 'proposal1');
+    assert.strictEqual(proposal.memo, 'proposal1');
     assert.strictEqual(proposal.m, WALLET_OPTIONS.m);
     assert.strictEqual(proposal.n, WALLET_OPTIONS.n);
     assert.strictEqual(proposal.statusCode, Proposal.status.PROGRESS);
@@ -411,7 +414,7 @@ describe('HTTP', function () {
   it('should get proposal tx', async () => {
     const txinfo = await testWalletClient1.getProposalMTX(
       WALLET_OPTIONS.id,
-      'proposal1'
+      pid1
     );
 
     assert(txinfo.tx);
@@ -420,7 +423,7 @@ describe('HTTP', function () {
   it('should reject proposal', async () => {
     const proposal = await testWalletClient1.rejectProposal(
       WALLET_OPTIONS.id,
-      'proposal1'
+      pid1
     );
 
     const pendingProposals = await testWalletClient1.getProposals(
@@ -435,7 +438,7 @@ describe('HTTP', function () {
     assert.strictEqual(pendingProposals.length, 0);
     assert.strictEqual(proposals.length, 1);
 
-    assert.strictEqual(proposal.name, 'proposal1');
+    assert.strictEqual(proposal.memo, 'proposal1');
     assert.strictEqual(proposal.statusCode, Proposal.status.REJECTED);
     assert.strictEqual(proposal.rejections.length, 1);
     assert.deepStrictEqual(proposal.rejections[0], {
@@ -448,11 +451,12 @@ describe('HTTP', function () {
     const txoptions = getTXOptions(1);
     const proposal = await testWalletClient1.createProposal(
       WALLET_OPTIONS.id,
-      'proposal2',
-      txoptions
+      { memo: 'proposal2', ...txoptions }
     );
 
-    assert.strictEqual(proposal.name, 'proposal2');
+    pid2 = proposal.id;
+
+    assert.strictEqual(proposal.memo, 'proposal2');
     assert.deepStrictEqual(proposal.author, {
       id: 0,
       name: 'cosigner1'
@@ -464,7 +468,7 @@ describe('HTTP', function () {
   it('should get transaction with input paths', async () => {
     const txinfo = await testWalletClient1.getProposalMTX(
       WALLET_OPTIONS.id,
-      'proposal2',
+      pid2,
       { paths: true }
     );
 
@@ -481,7 +485,7 @@ describe('HTTP', function () {
   it('should sign and approve proposal', async () => {
     const txinfo = await testWalletClient1.getProposalMTX(
       WALLET_OPTIONS.id,
-      'proposal2',
+      pid2,
       {
         paths: true,
         scripts: true
@@ -504,7 +508,7 @@ describe('HTTP', function () {
 
     const proposal = await testWalletClient1.approveProposal(
       WALLET_OPTIONS.id,
-      'proposal2',
+      pid2,
       signatures
     );
 
@@ -517,7 +521,7 @@ describe('HTTP', function () {
 
     const txinfo = await testWalletClient1.getProposalMTX(
       WALLET_OPTIONS.id,
-      'proposal2',
+      pid2,
       {
         paths: true,
         scripts: true
@@ -540,7 +544,7 @@ describe('HTTP', function () {
 
     const proposal = await testWalletClient2.approveProposal(
       WALLET_OPTIONS.id,
-      'proposal2',
+      pid2,
       signatures
     );
 
@@ -554,7 +558,7 @@ describe('HTTP', function () {
     // verify tx is signed
     const txinfo2 = await testWalletClient2.getProposalMTX(
       WALLET_OPTIONS.id,
-      'proposal2'
+      pid2,
     );
 
     const mtx2 = MTX.fromJSON(txinfo2.tx);
@@ -562,7 +566,7 @@ describe('HTTP', function () {
 
     const jsontx = await testWalletClient2.sendProposal(
       WALLET_OPTIONS.id,
-      'proposal2'
+      pid2
     );
 
     assert(jsontx, 'Transaction not found');
