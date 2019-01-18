@@ -480,7 +480,7 @@ describe('MultisigProposals', function () {
       assert.strictEqual(sigs.length, 2);
 
       const approved = await mswallet2.approveProposal(
-        proposalName,
+        proposal.id,
         cosigner2,
         sigs
       );
@@ -496,7 +496,7 @@ describe('MultisigProposals', function () {
       assert.strictEqual(sigs.length, 2);
 
       const approved = await mswallet2.approveProposal(
-        proposalName,
+        proposal.id,
         cosigner3,
         sigs
       );
