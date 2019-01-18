@@ -506,11 +506,13 @@ describe('HTTP', function () {
 
     const signatures = testUtils.getMTXSignatures(mtx, rings);
 
-    const proposal = await testWalletClient1.approveProposal(
+    const response = await testWalletClient1.approveProposal(
       WALLET_OPTIONS.id,
       pid2,
       signatures
     );
+
+    const proposal = response.proposal;
 
     assert.strictEqual(proposal.approvals.length, 1);
     assert.strictEqual(proposal.statusCode, Proposal.status.PROGRESS);
@@ -542,11 +544,13 @@ describe('HTTP', function () {
 
     const signatures = testUtils.getMTXSignatures(mtx, rings);
 
-    const proposal = await testWalletClient2.approveProposal(
+    const response = await testWalletClient2.approveProposal(
       WALLET_OPTIONS.id,
       pid2,
       signatures
     );
+
+    const proposal = response.proposal;
 
     // we are not spending it yet.
     await wdb.addBlock(walletUtils.nextBlock(wdb), []);
