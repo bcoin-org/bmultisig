@@ -107,6 +107,29 @@ describe('HTTP', function () {
       apiKey: API_KEY,
       token: ADMIN_TOKEN
     });
+
+    adminClient.open();
+    multisigClient.open();
+    walletAdminClient.open();
+
+    await Promise.all([
+      waitFor(adminClient, 'connect'),
+      waitFor(multisigClient, 'connect'),
+      waitFor(walletAdminClient, 'connect')
+    ]);
+
+    // subscribe to all wallet events. (admin only)
+    await adminClient.all(ADMIN_TOKEN);
+    await walletAdminClient.all(ADMIN_TOKEN);
+  });
+
+  afterEach(async () => {
+    await adminClient.leave('*');
+    await walletAdminClient.leave('*');
+
+    await adminClient.close();
+    await multisigClient.close();
+    await walletAdminClient.close();
   });
 
   it('should create multisig wallet', async () => {
@@ -160,30 +183,69 @@ describe('HTTP', function () {
 
     let err;
     try {
-      await msclient.getInfo('test');
+      await msclient.getInfo(WALLET_OPTIONS.id);
     } catch (e) {
       err = e;
     }
 
     assert(err);
     assert.strictEqual(err.message, 'Authentication error.');
+
+    // try to listen wallet events
+    msclient.open();
+
+    await waitFor(msclient, 'connect');
+
+    err = null;
+    try {
+      await msclient.join(WALLET_OPTIONS.id, Buffer.alloc(0, 32));
+    } catch (e) {
+      err = e;
+    }
+
+    assert(err);
+    assert.strictEqual(err.message, 'Bad token.');
+
+    await msclient.close();
   });
 
   it('should join multisig wallet', async () => {
     const xpub = xpub2.xpubkey(network);
     const cosignerName = 'cosigner2';
 
+    // Setup wallet client 1 to listen join event
+    testWalletClient1.open();
+    await waitFor(testWalletClient1, 'connect');
+    testWalletClient1.join(WALLET_OPTIONS.id, testWalletClient1.token);
+
+    // join event
+    const joinEvents = Promise.all([
+      waitForBind(testWalletClient1, 'join'),
+      waitForBind(adminClient, 'join'),
+      waitForBind(walletAdminClient, 'join')
+    ]);
+
     const mswallet = await multisigClient.joinWallet(WALLET_OPTIONS.id, {
       cosignerName, joinKey, xpub
     });
+
+    const eventResponses = await joinEvents;
+
+    const cosigners = mswallet.cosigners;
+    for (const response of eventResponses) {
+      assert.strictEqual(response[0], WALLET_OPTIONS.id);
+
+      const cosigner = response[1];
+
+      assert.deepStrictEqual(cosigner.name, cosigners[1].name);
+      assert.deepStrictEqual(cosigner.id, cosigners[1].id);
+    }
 
     assert(mswallet, 'Did not return multisig wallet.');
     assert.strictEqual(mswallet.wid, 1);
     assert.strictEqual(mswallet.id, 'test');
     assert.strictEqual(mswallet.cosigners.length, 2);
     assert.strictEqual(mswallet.initialized, true);
-
-    const cosigners = mswallet.cosigners;
 
     assert.deepStrictEqual(cosigners[0], {
       id: 0,
@@ -206,6 +268,8 @@ describe('HTTP', function () {
     }, {
       token: cosigners[1].token
     }));
+
+    await testWalletClient1.close();
   });
 
   it('should get multisig wallet by id', async () => {
@@ -681,4 +745,38 @@ function getPrivKey() {
 
 function generateAddress() {
   return KeyRing.generate().getAddress();
+}
+
+function waitFor(emitter, event, timeout = 1000) {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => {
+      reject(new Error('Timeout.'));
+    }, timeout);
+
+    emitter.once(event, (...args) => {
+      clearTimeout(t);
+      resolve(...args);
+    });
+  });
+}
+
+// TODO: remove once bcurl/bclient PRs get merged and published
+function waitForBind(client, event, timeout = 1000) {
+  const unbind = client.socket.unbind.bind(client.socket);
+
+  return new Promise((resolve, reject) => {
+    let t;
+
+    const cb = function cb(...args) {
+      clearTimeout(t);
+      resolve(args);
+    };
+
+    t = setTimeout(() => {
+      unbind(event, cb);
+      reject(new Error('Timeout.'));
+    }, timeout);
+
+    client.bind(event, cb);
+  });
 }
