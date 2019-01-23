@@ -448,7 +448,8 @@ describe('HTTP', function () {
     pid1 = proposal.id;
 
     assert.instanceOf(tx, TX);
-    assert.deepStrictEqual(proposal.author, { id: 1, name: 'cosigner2' });
+    assert.strictEqual(proposal.author, 1);
+    assert.deepStrictEqual(proposal.authorDetails, {id: 1, name: 'cosigner2'});
     assert.strictEqual(proposal.memo, 'proposal1');
     assert.strictEqual(proposal.m, WALLET_OPTIONS.m);
     assert.strictEqual(proposal.n, WALLET_OPTIONS.n);
@@ -460,7 +461,8 @@ describe('HTTP', function () {
     const proposal = proposals[0];
 
     assert.strictEqual(proposals.length, 1);
-    assert.deepStrictEqual(proposal.author, { id: 1, name: 'cosigner2'});
+    assert.strictEqual(proposal.author, 1);
+    assert.deepStrictEqual(proposal.authorDetails, {id: 1, name: 'cosigner2'});
   });
 
   it('should get proposal', async () => {
@@ -505,7 +507,8 @@ describe('HTTP', function () {
     assert.strictEqual(proposal.memo, 'proposal1');
     assert.strictEqual(proposal.statusCode, Proposal.status.REJECTED);
     assert.strictEqual(proposal.rejections.length, 1);
-    assert.deepStrictEqual(proposal.rejections[0], {
+    assert.strictEqual(proposal.rejections[0], 0);
+    assert.deepStrictEqual(proposal.cosignerRejections[0], {
       id: 0,
       name: 'cosigner1'
     });
@@ -521,7 +524,8 @@ describe('HTTP', function () {
     pid2 = proposal.id;
 
     assert.strictEqual(proposal.memo, 'proposal2');
-    assert.deepStrictEqual(proposal.author, {
+    assert.strictEqual(proposal.author, 0);
+    assert.deepStrictEqual(proposal.authorDetails, {
       id: 0,
       name: 'cosigner1'
     });

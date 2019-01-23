@@ -21,6 +21,24 @@ const TEST_OPTIONS = {
 
 const TEST_KEY = hd.generate().toPublic();
 
+const COSIGNERS = [
+  Cosigner.fromOptions({
+    id: 0,
+    name: 'cosigner1',
+    key: TEST_KEY
+  }),
+  Cosigner.fromOptions({
+    id: 1,
+    name: 'cosigner2',
+    key: TEST_KEY
+  }),
+  Cosigner.fromOptions({
+    id: 2,
+    name: 'cosigner3',
+    key: TEST_KEY
+  })
+];
+
 describe('Proposal', function () {
   it('should create proposal from option', () => {
     const proposal = Proposal.fromOptions(TEST_OPTIONS);
@@ -36,6 +54,37 @@ describe('Proposal', function () {
     const proposal1 = Proposal.fromJSON(json);
 
     assert.strictEqual(proposal.equals(proposal1), true);
+  });
+
+  it('should serialize to JSON and recover (cosigners)', () => {
+    const proposal = Proposal.fromOptions(TEST_OPTIONS);
+    const cosigner2 = Cosigner.fromOptions(COSIGNERS[1]);
+    const cosigner3 = Cosigner.fromOptions(COSIGNERS[2]);
+
+    proposal.approve(cosigner2, []);
+    proposal.reject(cosigner3);
+
+    const json = proposal.toJSON(null, COSIGNERS);
+    const proposal1 = Proposal.fromJSON(json);
+
+    // check author details first
+    assert.deepStrictEqual(json.authorDetails, COSIGNERS[0].toJSON());
+
+    for (const cosignerJSON of json.cosignerApprovals) {
+      const id = cosignerJSON.id;
+      const cosigner = COSIGNERS[id];
+
+      assert.deepStrictEqual(cosignerJSON, cosigner.toJSON());
+    }
+
+    for (const cosignerJSON of json.cosignerRejections) {
+      const id = cosignerJSON.id;
+      const cosigner = COSIGNERS[id];
+
+      assert.deepStrictEqual(cosignerJSON, cosigner.toJSON());
+    }
+
+    assert(proposal.equals(proposal1), true);
   });
 
   it('should serialize to Raw and recover', () => {
@@ -55,17 +104,8 @@ describe('Proposal', function () {
 
   it('should reject proposal', () => {
     const proposal = Proposal.fromOptions(TEST_OPTIONS);
-    const cosigner1 = Cosigner.fromOptions({
-      id: 0,
-      name: 'cosigner1',
-      key: TEST_KEY
-    });
-
-    const cosigner2 = Cosigner.fromOptions({
-      id: 1,
-      name: 'cosigner2',
-      key: TEST_KEY
-    });
+    const cosigner1 = COSIGNERS[0];
+    const cosigner2 = COSIGNERS[1];
 
     proposal.reject(cosigner1);
 
@@ -87,6 +127,7 @@ describe('Proposal', function () {
     proposal.reject(cosigner2);
 
     assert.strictEqual(proposal.rejections.size, 2);
+    assert.notStrictEqual(proposal.closedAt, 0);
     assert.strictEqual(proposal.status, Proposal.status.REJECTED);
     assert.strictEqual(proposal.rejections.has(0), true);
     assert.strictEqual(proposal.rejections.has(1), true);
@@ -95,17 +136,8 @@ describe('Proposal', function () {
 
   it('should approve proposal', () => {
     const proposal = Proposal.fromOptions(TEST_OPTIONS);
-    const cosigner1 = Cosigner.fromOptions({
-      id: 0,
-      name: 'cosigner1',
-      key: TEST_KEY
-    });
-
-    const cosigner2 = Cosigner.fromOptions({
-      id: 1,
-      name: 'cosigner2',
-      key: TEST_KEY
-    });
+    const cosigner1 = COSIGNERS[0];
+    const cosigner2 = COSIGNERS[1];
 
     proposal.approve(cosigner1, []);
 
@@ -126,6 +158,7 @@ describe('Proposal', function () {
     proposal.approve(cosigner2, []);
 
     assert.strictEqual(proposal.approvals.size, 2);
+    assert.notStrictEqual(proposal.closedAt, 0);
     assert.strictEqual(proposal.status, Proposal.status.APPROVED);
     assert.strictEqual(proposal.approvals.has(0), true);
     assert.strictEqual(proposal.approvals.has(1), true);
@@ -258,6 +291,15 @@ describe('Proposal', function () {
       assert.strictEqual(rejRecord2.size, 4);
       assert.strictEqual(rejRecord1.equals(rejRecord2), true);
     });
+
+    it('should reserialize rejection set record', () => {
+      const rejRecord1 = RejectionsSetRecord.fromArray([2, 1]);
+
+      const json = rejRecord1.toJSON();
+      const rejRecord2 = RejectionsSetRecord.fromJSON(json);
+
+      assert(rejRecord1.equals(rejRecord2));
+    });
   });
 
   describe('ApprovalsMapRecord', function () {
@@ -323,6 +365,27 @@ describe('Proposal', function () {
       const approvedRecord2 = ApprovalsMapRecord.fromRaw(raw);
 
       assert.strictEqual(approvedRecord1.equals(approvedRecord2), true);
+    });
+
+    it('should reserialize approval map record', () => {
+      const sigs1 = [Buffer.alloc(20, 0)];
+      const sigs2 = [Buffer.alloc(10, 1)];
+
+      const sigRecord1 = SignaturesRecord.fromSignatures(sigs1);
+      const sigRecord2 = SignaturesRecord.fromSignatures(sigs2);
+
+      const approvedRecord1 = new ApprovalsMapRecord();
+
+      approvedRecord1.set(0, sigRecord1);
+      approvedRecord1.set(2, sigRecord2);
+
+      const json = approvedRecord1.toJSON();
+      const approvedRecord2 = RejectionsSetRecord.fromJSON(json);
+
+      assert.strictEqual(approvedRecord1.size, approvedRecord2.size);
+
+      for (const key of approvedRecord1.keys())
+        assert(approvedRecord2.has(key));
     });
   });
 });
