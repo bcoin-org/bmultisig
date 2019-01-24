@@ -107,6 +107,49 @@ describe('HTTP', function () {
       apiKey: API_KEY,
       token: ADMIN_TOKEN
     });
+
+    adminClient.open();
+    multisigClient.open();
+    walletAdminClient.open();
+
+    if (testWalletClient1)
+      testWalletClient1.open();
+
+    if (testWalletClient2)
+      testWalletClient2.open();
+
+    await Promise.all([
+      waitFor(adminClient, 'connect'),
+      waitFor(multisigClient, 'connect'),
+      waitFor(walletAdminClient, 'connect'),
+      testWalletClient1 ? waitFor(testWalletClient1, 'connect') : null,
+      testWalletClient2 ? waitFor(testWalletClient2, 'connect') : null
+    ]);
+
+    if (testWalletClient1 && testWalletClient1.opened)
+      testWalletClient1.join(WALLET_OPTIONS.id, testWalletClient1.token);
+
+    if (testWalletClient2 && testWalletClient2.opened)
+      testWalletClient2.join(WALLET_OPTIONS.id, testWalletClient2.token);
+
+    // subscribe to all wallet events. (admin only)
+    await adminClient.all(ADMIN_TOKEN);
+    await walletAdminClient.all(ADMIN_TOKEN);
+  });
+
+  afterEach(async () => {
+    await adminClient.leave('*');
+    await walletAdminClient.leave('*');
+
+    await adminClient.close();
+    await multisigClient.close();
+    await walletAdminClient.close();
+
+    if (testWalletClient1 && testWalletClient1.opened)
+      await testWalletClient1.close();
+
+    if (testWalletClient2 && testWalletClient2.opened)
+      await testWalletClient2.close();
   });
 
   it('should create multisig wallet', async () => {
@@ -160,30 +203,64 @@ describe('HTTP', function () {
 
     let err;
     try {
-      await msclient.getInfo('test');
+      await msclient.getInfo(WALLET_OPTIONS.id);
     } catch (e) {
       err = e;
     }
 
     assert(err);
     assert.strictEqual(err.message, 'Authentication error.');
+
+    // try to listen wallet events
+    msclient.open();
+
+    await waitFor(msclient, 'connect');
+
+    err = null;
+    try {
+      await msclient.join(WALLET_OPTIONS.id, Buffer.alloc(0, 32));
+    } catch (e) {
+      err = e;
+    }
+
+    assert(err);
+    assert.strictEqual(err.message, 'Bad token.');
+
+    await msclient.close();
   });
 
   it('should join multisig wallet', async () => {
     const xpub = xpub2.xpubkey(network);
     const cosignerName = 'cosigner2';
 
+    // join event
+    const joinEvents = Promise.all([
+      waitForBind(testWalletClient1, 'join'),
+      waitForBind(adminClient, 'join'),
+      waitForBind(walletAdminClient, 'join')
+    ]);
+
     const mswallet = await multisigClient.joinWallet(WALLET_OPTIONS.id, {
       cosignerName, joinKey, xpub
     });
+
+    const eventResponses = await joinEvents;
+
+    const cosigners = mswallet.cosigners;
+    for (const response of eventResponses) {
+      assert.strictEqual(response[0], WALLET_OPTIONS.id);
+
+      const cosigner = response[1];
+
+      assert.deepStrictEqual(cosigner.name, cosigners[1].name);
+      assert.deepStrictEqual(cosigner.id, cosigners[1].id);
+    }
 
     assert(mswallet, 'Did not return multisig wallet.');
     assert.strictEqual(mswallet.wid, 1);
     assert.strictEqual(mswallet.id, 'test');
     assert.strictEqual(mswallet.cosigners.length, 2);
     assert.strictEqual(mswallet.initialized, true);
-
-    const cosigners = mswallet.cosigners;
 
     assert.deepStrictEqual(cosigners[0], {
       id: 0,
@@ -374,17 +451,31 @@ describe('HTTP', function () {
   it('should create proposal', async () => {
     const txoptions = getTXOptions(1);
 
+    const createEvents = Promise.all([
+      waitForBind(adminClient, 'proposal created'),
+      waitForBind(walletAdminClient, 'proposal created'),
+      waitForBind(testWalletClient2, 'proposal created')
+    ]);
+
     const proposal = await testWalletClient2.createProposal(
       WALLET_OPTIONS.id,
       { memo: 'proposal1', ...txoptions}
     );
+
+    const eventResults = await createEvents;
+
+    for (const [wid, result] of eventResults) {
+      assert.strictEqual(wid, WALLET_OPTIONS.id);
+      assert.deepStrictEqual(result, proposal);
+    }
 
     const tx = TX.fromRaw(proposal.tx, 'hex');
 
     pid1 = proposal.id;
 
     assert.instanceOf(tx, TX);
-    assert.deepStrictEqual(proposal.author, { id: 1, name: 'cosigner2' });
+    assert.strictEqual(proposal.author, 1);
+    assert.deepStrictEqual(proposal.authorDetails, {id: 1, name: 'cosigner2'});
     assert.strictEqual(proposal.memo, 'proposal1');
     assert.strictEqual(proposal.m, WALLET_OPTIONS.m);
     assert.strictEqual(proposal.n, WALLET_OPTIONS.n);
@@ -396,7 +487,8 @@ describe('HTTP', function () {
     const proposal = proposals[0];
 
     assert.strictEqual(proposals.length, 1);
-    assert.deepStrictEqual(proposal.author, { id: 1, name: 'cosigner2'});
+    assert.strictEqual(proposal.author, 1);
+    assert.deepStrictEqual(proposal.authorDetails, {id: 1, name: 'cosigner2'});
   });
 
   it('should get proposal', async () => {
@@ -421,10 +513,28 @@ describe('HTTP', function () {
   });
 
   it('should reject proposal', async () => {
+    const rejectEvents = Promise.all([
+      waitForBind(testWalletClient1, 'proposal rejected'),
+      waitForBind(testWalletClient2, 'proposal rejected'),
+      waitForBind(adminClient, 'proposal rejected'),
+      waitForBind(walletAdminClient, 'proposal rejected')
+    ]);
+
     const proposal = await testWalletClient1.rejectProposal(
       WALLET_OPTIONS.id,
       pid1
     );
+
+    const eventResults = await rejectEvents;
+
+    for (const [wid, result] of eventResults) {
+      assert.strictEqual(wid, WALLET_OPTIONS.id);
+      assert.deepStrictEqual(result.proposal, proposal);
+      assert.deepStrictEqual(result.cosigner, {
+        id: 0,
+        name: 'cosigner1'
+      });
+    }
 
     const pendingProposals = await testWalletClient1.getProposals(
       WALLET_OPTIONS.id
@@ -441,7 +551,8 @@ describe('HTTP', function () {
     assert.strictEqual(proposal.memo, 'proposal1');
     assert.strictEqual(proposal.statusCode, Proposal.status.REJECTED);
     assert.strictEqual(proposal.rejections.length, 1);
-    assert.deepStrictEqual(proposal.rejections[0], {
+    assert.strictEqual(proposal.rejections[0], 0);
+    assert.deepStrictEqual(proposal.cosignerRejections[0], {
       id: 0,
       name: 'cosigner1'
     });
@@ -457,7 +568,8 @@ describe('HTTP', function () {
     pid2 = proposal.id;
 
     assert.strictEqual(proposal.memo, 'proposal2');
-    assert.deepStrictEqual(proposal.author, {
+    assert.strictEqual(proposal.author, 0);
+    assert.deepStrictEqual(proposal.authorDetails, {
       id: 0,
       name: 'cosigner1'
     });
@@ -506,6 +618,13 @@ describe('HTTP', function () {
 
     const signatures = testUtils.getMTXSignatures(mtx, rings);
 
+    const approveEvents = Promise.all([
+      waitForBind(testWalletClient1, 'proposal approved'),
+      waitForBind(testWalletClient2, 'proposal approved'),
+      waitForBind(adminClient, 'proposal approved'),
+      waitForBind(walletAdminClient, 'proposal approved')
+    ]);
+
     const response = await testWalletClient1.approveProposal(
       WALLET_OPTIONS.id,
       pid2,
@@ -513,6 +632,23 @@ describe('HTTP', function () {
     );
 
     const proposal = response.proposal;
+    const eventResults = await approveEvents;
+    const cosigner = {
+      id: 0,
+      name: 'cosigner1'
+    };
+
+    for (const [wid, result] of eventResults) {
+      assert.strictEqual(wid, WALLET_OPTIONS.id);
+      assert.deepStrictEqual(result.proposal, {
+        ...proposal,
+        authorDetails: cosigner,
+        cosignerApprovals: [cosigner],
+        cosignerRejections: []
+      });
+
+      assert.deepStrictEqual(result.cosigner, cosigner);
+    }
 
     assert.strictEqual(proposal.approvals.length, 1);
     assert.strictEqual(proposal.statusCode, Proposal.status.PROGRESS);
@@ -544,6 +680,13 @@ describe('HTTP', function () {
 
     const signatures = testUtils.getMTXSignatures(mtx, rings);
 
+    const approveEvents = Promise.all([
+      waitForBind(testWalletClient1, 'proposal approved'),
+      waitForBind(testWalletClient2, 'proposal approved'),
+      waitForBind(adminClient, 'proposal approved'),
+      waitForBind(walletAdminClient, 'proposal approved')
+    ]);
+
     const response = await testWalletClient2.approveProposal(
       WALLET_OPTIONS.id,
       pid2,
@@ -551,6 +694,26 @@ describe('HTTP', function () {
     );
 
     const proposal = response.proposal;
+    const eventResults = await approveEvents;
+    const cosigners = [
+      { id: 0, name: 'cosigner1' },
+      { id: 1, name: 'cosigner2' }
+    ];
+
+    for (const [wid, result] of eventResults) {
+      assert.strictEqual(wid, WALLET_OPTIONS.id);
+      assert.deepStrictEqual(result.proposal, {
+        ...proposal,
+        authorDetails: cosigners[0],
+        cosignerApprovals: cosigners,
+        cosignerRejections: []
+      });
+
+      assert.deepStrictEqual(result.cosigner, {
+        id: 1,
+        name: 'cosigner2'
+      });
+    }
 
     // we are not spending it yet.
     await wdb.addBlock(walletUtils.nextBlock(wdb), []);
@@ -589,6 +752,12 @@ describe('HTTP', function () {
     const removed = await adminClient.removeWallet(id);
     const multisigWalletsAfter = await adminClient.getWallets();
     const walletsAfter = await walletAdminClient.getWallets();
+
+    // clean up wallets
+    await testWalletClient1.close();
+    await testWalletClient2.close();
+    testWalletClient1 = null;
+    testWalletClient2 = null;
 
     assert.strictEqual(removed, true, 'Could not remove wallet');
     assert.deepEqual(multisigWalletsBefore, [id]);
@@ -681,4 +850,38 @@ function getPrivKey() {
 
 function generateAddress() {
   return KeyRing.generate().getAddress();
+}
+
+function waitFor(emitter, event, timeout = 1000) {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => {
+      reject(new Error('Timeout.'));
+    }, timeout);
+
+    emitter.once(event, (...args) => {
+      clearTimeout(t);
+      resolve(...args);
+    });
+  });
+}
+
+// TODO: remove once bcurl/bclient PRs get merged and published
+function waitForBind(client, event, timeout = 1000) {
+  const unbind = client.socket.unbind.bind(client.socket);
+
+  return new Promise((resolve, reject) => {
+    let t;
+
+    const cb = function cb(...args) {
+      clearTimeout(t);
+      resolve(args);
+    };
+
+    t = setTimeout(() => {
+      unbind(event, cb);
+      reject(new Error('Timeout.'));
+    }, timeout);
+
+    client.bind(event, cb);
+  });
 }
