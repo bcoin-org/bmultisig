@@ -4,7 +4,10 @@
   "description": "Bcoin wallet plugin for multi signature transaction proposals",
   "repository": "git://github.com/bcoin-org/bmultisig.git",
   "homepage": "https://github.com/bcoin-org/bmultisig",
-  "main": "./lib/plugin",
+  "main": "./lib/bmultisig",
+  "browser": {
+    "./lib/bmultisig": "./lib/bmultisig-browser"
+  },
   "bin": {
     "bmultisig": "./bin/bmultisig"
   },

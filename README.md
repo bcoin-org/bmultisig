@@ -3,10 +3,8 @@
 [![CircleCi Status][circleci-status-img]][circleci-status-url]
 [![Coverage Status][coverage-status-img]][coverage-status-url]
 
-bmultisig is a [bcoin][bcoin] plugin which adds multisig wallet http endpoints and events to bwallet for payment proposals.
-
-## Note
-**This is work in progress, not ready for production use.**
+bmultisig is a [bcoin][bcoin] plugin which adds multisig wallet http endpoints
+and events to bwallet for payment proposals.
 
 ## Usage
 
