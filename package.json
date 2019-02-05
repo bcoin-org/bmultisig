@@ -35,6 +35,7 @@
     "bdb": "^1.1.5",
     "bevent": "^0.1.4",
     "blgr": "^0.1.5",
+    "bmultisig-client": "0.0.2",
     "bmutex": "^0.1.5",
     "bsert": "0.0.8",
     "bstring": "^0.3.5",
@@ -43,6 +44,6 @@
     "bweb": "^0.1.7"
   },
   "devDependencies": {
-    "bmocha": "^1.0.0"
+    "bmocha": "^1.0.1"
   }
 }

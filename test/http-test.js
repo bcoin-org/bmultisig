@@ -13,7 +13,7 @@ const {MTX, TX, Amount, KeyRing} = bcoin;
 const {wallet, hd} = bcoin;
 const Proposal = require('../lib/primitives/proposal');
 
-const MultisigClient = require('../lib/client');
+const {MultisigClient} = require('bmultisig-client');
 const {WalletClient} = require('bclient');
 
 const NETWORK_NAME = 'regtest';
