@@ -777,61 +777,6 @@ describe('HTTP', function () {
     assert.strictEqual(removed, false, 'Removed non existing wallet');
     assert.strictEqual(removedPrimary, false, 'Can not remove primary wallet');
   });
-
-  describe('Client', function () {
-    it('should parse multisig path from path', () => {
-      const path = '/test';
-      const multisigPath = '/test/multisig';
-
-      const client = new MultisigClient({ path });
-
-      assert.strictEqual(client.rootPath, path);
-      assert.strictEqual(client.path, multisigPath);
-      assert.strictEqual(client.multisigPath, multisigPath);
-    });
-
-    it('should parse root path from multisig path', () => {
-      const path = '/test';
-      const multisigPath = '/test/multisig';
-
-      const client = new MultisigClient({ multisigPath });
-      assert.strictEqual(client.rootPath, path);
-      assert.strictEqual(client.path, multisigPath);
-      assert.strictEqual(client.multisigPath, multisigPath);
-    });
-
-    it('should parse root path from multisig path (trailing slash)', () => {
-      const path = '/test';
-      const multisigPath = '/test/multisig/';
-
-      const client = new MultisigClient({ multisigPath });
-      assert.strictEqual(client.rootPath, path);
-      assert.strictEqual(client.path, multisigPath);
-      assert.strictEqual(client.multisigPath, multisigPath);
-    });
-
-    it('should parse path from string', () => {
-      const path = '/test';
-      const multisigPath = '/test/multisig';
-      const url = 'https://localhost/test';
-
-      const client = new MultisigClient(url);
-      assert.strictEqual(client.rootPath, path);
-      assert.strictEqual(client.path, multisigPath);
-      assert.strictEqual(client.multisigPath, multisigPath);
-    });
-
-    // not servers
-    it('should specify separate wallet and multisig paths', () => {
-      const path = '/test/wallet';
-      const multisigPath = '/test/multisigPath';
-
-      const client = new MultisigClient({ path, multisigPath });
-      assert.strictEqual(client.rootPath, path);
-      assert.strictEqual(client.path, multisigPath);
-      assert.strictEqual(client.multisigPath, multisigPath);
-    });
-  });
 });
 
 /*
