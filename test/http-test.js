@@ -160,7 +160,9 @@ describe('HTTP', function () {
     const id = WALLET_OPTIONS.id;
 
     const walletOptions = Object.assign({
-      cosignerName, cosignerToken, xpub
+      cosignerName,
+      cosignerToken,
+      accountKey: xpub
     }, WALLET_OPTIONS);
 
     const wallet = await multisigClient.createWallet(id, walletOptions);
@@ -170,8 +172,6 @@ describe('HTTP', function () {
     assert.strictEqual(wallet.wid, 1);
     assert.strictEqual(wallet.id, id);
     assert.strictEqual(wallet.cosigners.length, 1);
-    assert.strictEqual(wallet.m, 2);
-    assert.strictEqual(wallet.n, 2);
 
     const cosigner = wallet.cosigners[0];
     assert.strictEqual(cosigner.name, 'cosigner1');
@@ -305,7 +305,7 @@ describe('HTTP', function () {
 
     // with details
     const msWalletDetails = await testWalletClient1.getInfo('test', true);
-    const account = msWalletDetails.account;
+    const account = await testWalletClient1.getAccount('test', 'default');
 
     assert(msWalletDetails, 'Can not get multisig wallet');
     assert.strictEqual(msWalletDetails.wid, multisigWallet.wid);
@@ -318,7 +318,9 @@ describe('HTTP', function () {
     assert(account.receiveAddress);
     assert(account.changeAddress);
     assert(account.nestedAddress);
-    assert.strictEqual(account.keys.length, msWalletDetails.n);
+    assert.strictEqual(account.m, 2);
+    assert.strictEqual(account.n, 2);
+    assert.strictEqual(account.keys.length, 2);
   });
 
   it('should return null on non existing wallet', async () => {
@@ -432,8 +434,8 @@ describe('HTTP', function () {
   });
 
   it('should fund and create transaction', async () => {
-    const msWalletDetails = await testWalletClient1.getInfo('test', true);
-    const addr = msWalletDetails.account.receiveAddress;
+    const account = await testWalletClient1.getAccount('test');
+    const addr = account.receiveAddress;
 
     await walletUtils.fundAddressBlock(wdb, addr, 1);
 
