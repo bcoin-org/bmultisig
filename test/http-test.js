@@ -13,12 +13,12 @@ const {MTX, TX, Amount, KeyRing} = bcoin;
 const {wallet, hd} = bcoin;
 const Proposal = require('../lib/primitives/proposal');
 
-const MultisigClient = require('../lib/client');
+const {MultisigClient} = require('bmultisig-client');
 const {WalletClient} = require('bclient');
 
 const NETWORK_NAME = 'regtest';
 const API_KEY = 'foo';
-const ADMIN_TOKEN = Buffer.alloc(32, 1).toString('hex');
+const ADMIN_TOKEN = Buffer.alloc(32, 250).toString('hex');
 
 const network = Network.get(NETWORK_NAME);
 
@@ -156,10 +156,11 @@ describe('HTTP', function () {
     const xpub = xpub1.xpubkey(network);
 
     const cosignerName = 'cosigner1';
+    const cosignerToken = Buffer.alloc(32, 1).toString('hex');
     const id = WALLET_OPTIONS.id;
 
     const walletOptions = Object.assign({
-      cosignerName, xpub
+      cosignerName, cosignerToken, xpub
     }, WALLET_OPTIONS);
 
     const wallet = await multisigClient.createWallet(id, walletOptions);
@@ -176,6 +177,7 @@ describe('HTTP', function () {
     assert.strictEqual(cosigner.name, 'cosigner1');
     assert.strictEqual(cosigner.path, '');
     assert.strictEqual(cosigner.token.length, 64);
+    assert.strictEqual(cosigner.token, cosignerToken);
     assert.strictEqual(cosigner.tokenDepth, 0);
 
     joinKey = wallet.joinKey;
@@ -232,6 +234,7 @@ describe('HTTP', function () {
   it('should join multisig wallet', async () => {
     const xpub = xpub2.xpubkey(network);
     const cosignerName = 'cosigner2';
+    const cosignerToken = Buffer.alloc(32, 2).toString('hex');
 
     // join event
     const joinEvents = Promise.all([
@@ -241,7 +244,7 @@ describe('HTTP', function () {
     ]);
 
     const mswallet = await multisigClient.joinWallet(WALLET_OPTIONS.id, {
-      cosignerName, joinKey, xpub
+      cosignerName, cosignerToken, joinKey, xpub
     });
 
     const eventResponses = await joinEvents;
@@ -267,6 +270,7 @@ describe('HTTP', function () {
       name: 'cosigner1'
     });
 
+    assert.strictEqual(cosigners[1].token, cosignerToken);
     assert.notTypeOf(cosigners[1].token, 'null');
 
     testWalletClient2 = new MultisigClient({
@@ -772,61 +776,6 @@ describe('HTTP', function () {
 
     assert.strictEqual(removed, false, 'Removed non existing wallet');
     assert.strictEqual(removedPrimary, false, 'Can not remove primary wallet');
-  });
-
-  describe('Client', function () {
-    it('should parse multisig path from path', () => {
-      const path = '/test';
-      const multisigPath = '/test/multisig';
-
-      const client = new MultisigClient({ path });
-
-      assert.strictEqual(client.rootPath, path);
-      assert.strictEqual(client.path, multisigPath);
-      assert.strictEqual(client.multisigPath, multisigPath);
-    });
-
-    it('should parse root path from multisig path', () => {
-      const path = '/test';
-      const multisigPath = '/test/multisig';
-
-      const client = new MultisigClient({ multisigPath });
-      assert.strictEqual(client.rootPath, path);
-      assert.strictEqual(client.path, multisigPath);
-      assert.strictEqual(client.multisigPath, multisigPath);
-    });
-
-    it('should parse root path from multisig path (trailing slash)', () => {
-      const path = '/test';
-      const multisigPath = '/test/multisig/';
-
-      const client = new MultisigClient({ multisigPath });
-      assert.strictEqual(client.rootPath, path);
-      assert.strictEqual(client.path, multisigPath);
-      assert.strictEqual(client.multisigPath, multisigPath);
-    });
-
-    it('should parse path from string', () => {
-      const path = '/test';
-      const multisigPath = '/test/multisig';
-      const url = 'https://localhost/test';
-
-      const client = new MultisigClient(url);
-      assert.strictEqual(client.rootPath, path);
-      assert.strictEqual(client.path, multisigPath);
-      assert.strictEqual(client.multisigPath, multisigPath);
-    });
-
-    // not servers
-    it('should specify separate wallet and multisig paths', () => {
-      const path = '/test/wallet';
-      const multisigPath = '/test/multisigPath';
-
-      const client = new MultisigClient({ path, multisigPath });
-      assert.strictEqual(client.rootPath, path);
-      assert.strictEqual(client.path, multisigPath);
-      assert.strictEqual(client.multisigPath, multisigPath);
-    });
   });
 });
 

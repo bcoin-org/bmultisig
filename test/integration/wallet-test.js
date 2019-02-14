@@ -9,7 +9,7 @@ const bcoin = require('bcoin');
 const {Network} = bcoin;
 const {hd} = bcoin;
 
-const MultisigClient = require('../../lib/client');
+const MultisigClient = require('bmultisig-client');
 const {WalletClient} = require('bclient');
 
 const NETWORK_NAME = 'regtest';
