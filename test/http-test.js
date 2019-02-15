@@ -244,7 +244,10 @@ describe('HTTP', function () {
     ]);
 
     const mswallet = await multisigClient.joinWallet(WALLET_OPTIONS.id, {
-      cosignerName, cosignerToken, joinKey, xpub
+      cosignerName,
+      cosignerToken,
+      joinKey,
+      accountKey: xpub
     });
 
     const eventResponses = await joinEvents;
