@@ -323,7 +323,7 @@ describe('HTTP', function () {
     assert(account.nestedAddress);
     assert.strictEqual(account.m, 2);
     assert.strictEqual(account.n, 2);
-    assert.strictEqual(account.keys.length, 2);
+    assert.strictEqual(account.keys.length, 1);
   });
 
   it('should return null on non existing wallet', async () => {
