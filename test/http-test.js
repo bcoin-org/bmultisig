@@ -516,6 +516,38 @@ describe('HTTP', function () {
     assert(txinfo.tx);
   });
 
+  it('should get proposal tx with input txs', async () => {
+    const txinfo = await testWalletClient1.getProposalMTX(
+      WALLET_OPTIONS.id,
+      pid1,
+      { txs: true }
+    );
+
+    const {tx,txs} = txinfo;
+    // the same number of tx inputs as txs, since
+    // each of the txs represent a raw tx input
+    assert.equal(tx.inputs.length, txs.length);
+
+    for (const [i, input] of Object.entries(tx.inputs)) {
+      // convert the transaction the prevout
+      // comes from into a mtx
+      const mtx = MTX.fromRaw(txs[i], 'hex');
+      // the hashes should match
+      assert.equal(input.prevout.hash, mtx.txid().toString('hex'));
+
+      // we can safely grab the output object after we know the hashes match
+      // by using the prevout index
+      const output = mtx.outputs[input.prevout.index];
+
+      // assert that the values match
+      assert.equal(output.value, input.coin.value);
+
+      // assert that the scripts are equal
+      assert.equal(output.script.toRaw('hex').toString('hex'), input.coin.script);
+    }
+  })
+
+
   it('should reject proposal', async () => {
     const rejectEvents = Promise.all([
       waitForBind(testWalletClient1, 'proposal rejected'),
