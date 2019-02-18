@@ -543,10 +543,12 @@ describe('HTTP', function () {
       assert.equal(output.value, input.coin.value);
 
       // assert that the scripts are equal
-      assert.equal(output.script.toRaw('hex').toString('hex'), input.coin.script);
+      assert.equal(
+        output.script.toRaw('hex').toString('hex'),
+        input.coin.script
+      );
     }
-  })
-
+  });
 
   it('should reject proposal', async () => {
     const rejectEvents = Promise.all([
