@@ -161,7 +161,7 @@ describe('HTTP', function () {
 
     const walletOptions = Object.assign({
       cosignerName,
-      cosignerToken,
+      token: cosignerToken,
       accountKey: xpub
     }, WALLET_OPTIONS);
 
@@ -245,8 +245,8 @@ describe('HTTP', function () {
 
     const mswallet = await multisigClient.joinWallet(WALLET_OPTIONS.id, {
       cosignerName,
-      cosignerToken,
       joinKey,
+      token: cosignerToken,
       accountKey: xpub
     });
 
