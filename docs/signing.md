@@ -6,10 +6,10 @@ v2.0.0-beta - Signing and Verification
 ### Signing data
 Signatures will be generated from data using similar to
 what `signmessage` RPC call does and will return signature with same encoding.
-This way it will be compatible to ore APIs as well as hardware signing.
+This way it will be compatible with bitcoind APIs as well as hardware signing.
 We will be refering to this method when talking about signing.
 `bmultisig-client` will include additional utilities for handling
-signatures and others.
+signatures and validation.
   - varSize of magic string (Bitcoin Signed Message:\n)
   - magic string
   - varSize of data
@@ -40,7 +40,7 @@ When creating wallet, following data is being passed to the server
 (check `Wallet joining` for other options):
   - `id` - wallet name
   - `m`, `n` - multisig configurations
-  - `witness` - if we want to derive P2WSH instead of P2SH.
+  - `witness` (default `true`)- if we want to derive P2WSH instead of P2SH.
   - `joinPubKey` - PubKey for JOIN request verification.
     joinPubKey must be generated separately, because private key is shared.
     Users are expected to store this information for verifying signatures.
@@ -55,15 +55,15 @@ General cosigner information:
   - `cosignerName` - Cosigner name that will be displayed to other cosigners
   - `cosignerPath` - This will store information related to derivation path:
     - `masterFingerPrint` - fingerprint of master key
-    - `purpose` - purpose of the derived XPUB.
+    - `purpose` - purpose of the derived accountKey.
   - `cosignerData` - This is arbitrary data storage for
     future proofing little bit, it allows data up to 100 bytes.
   - `accountKey` - XPUB of the users, this will be used for deriving addresses
     in conjuction to other cosigners XPUBs.
   - `accountKeyProof` - Proving that you own accountKey, is for validating
-    xpubs, so you don't accidentally upload incorrect XPUB.
-    Derivation used for signing is: `XPUB/MAX_NONHARDENED_INDEX/0`.
-    - Data to sign: `cosignerName || authPubKey || accountKey`.
+    xpubs, so you don't accidentally upload incorrect accountKey.
+    Derivation used for signing is: `accountKey/MAX_NONHARDENED_INDEX/0`.
+    - Data to sign: `walletName || cosignerName || authPubKey || accountKey`.
 
 Used for authentication or verification:
   - `token` - token for authenticating HTTP requests(General authentication).
@@ -72,18 +72,24 @@ Used for authentication or verification:
     public key.
   - `joinSignature` - signature for proving that cosigner knows the secret.
   Following data will be used for generating the `hash256`:
-    - Data to sign: `cosignerName || authPubKey || accountKey`
+    - Data to sign: `walletName || cosignerName || authPubKey || accountKey`
 
 ## Proposals
 ### Creating proposal
 Proposal data:
   - `proposal` - This is proposal details.
+  - `rbytes` - random bytes (20 bytes)
   - `signature` - signature of the proposal data signed using authPubKey.
     JSON.stringified in this version.
 
 NOTE: there is no need to have Canonical JSON encoding, because original
 proposal object will be stringified and stored as it is. It can be fetched
 by other cosigners for verification.
+
+#### Getting proposal
+Get proposal will include original `proposal` options, that were used
+when creating the proposal. You can also use `tx` option to get
+non-templated mtx with get proposal.
 
 You may consider validating `MTX` - e.g. it is sane, outputs match,
  `rate` is applied properly.
@@ -143,8 +149,42 @@ or change some data (even keys and signatures), this
 update tries to make most crucial parts verifiable. But
 still requires some level of trust.**
 
+### Issues
+  Server operator can mess up wallet multiple ways, I will try to cover
+endpoints related to signatures.
+
+Endpoint `create wallet` & `join wallet`:
+  - Any data that was not committed to the signature can be modified
+  by the server operator. We may change what data do we commit in this
+  endpoint. E.g. commit whole object and/or separate signatures to commit
+  cosigner specific data separately, from general wallet information.
+
+Endpoint `create proposal`:
+  - Proposal option that are commited in the signature can be reused for
+    other proposals (They can be exactly the same and still valid). This
+    leads to an issue where server can replay that signature and create as many
+    similar proposal as it wants. If cosigners are not careful they can
+    be mislead into signing new MTX that they did not create.  
+    Even though MTX may be spending different inputs, it will still go
+    to same outputs.
+    We have introduced `rbytes` that can be used to track that this value
+    does not repeat, but that will require all clients tracking rbytes for all
+    past proposals.
+  - We could use `rbytes` as `pid` instead of incremented id, in order to
+    uniquely idenfity the proposal, but service provider can just remove old
+    proposal (it can be finalized) and introduce new one, so it still requires
+    users to track `seen rbytes`.
+
+Endpoint `reject proposal`:
+  - This will sign `pid` with the proposal options, so unless proposal
+    is replaced using the same `pid`, it can't be reused and also this wont
+    lead to situation where cosigners lose the money, whereas `create proposal`
+    can potentially lead to that.
+
 ### TLS
-TLS must be enforced for all `multisig` use cases.
+TLS is not enforced by the bmultisig on HTTP, you can enable it on the
+server or put server behind TLS reverse proxy. But production server
+must always use TLS.
 
 ### Handling authPrivKey
 `authPrivKey` as described above, can be stored on Hardware Device
@@ -152,6 +192,7 @@ and/or be one of XPUBs derivation paths (e.g. `XPUB/MAX_NONHARDENED_INDEX/1`)
 or be totally independent from xpub.  
 It should be stored securely depending on context and be only decrypted
 for small time: proposal creation and proposal rejection.
+It's recommended that you use different authPrivKey for different wallets.
 
 ### Handling token, joinPubKey
   - `token` is necessary for authenticating requests, so it's
