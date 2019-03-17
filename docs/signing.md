@@ -53,17 +53,16 @@ When joining wallet, following data is being passed:
 
 General cosigner information:
   - `cosignerName` - Cosigner name that will be displayed to other cosigners
-  - `cosignerPath` - This will store information related to derivation path:
-    - `masterFingerPrint` - fingerprint of master key
-    - `purpose` - purpose of the derived accountKey.
+  - `cosignerFingerPrint` - fingerprint of master key
+  - `cosignerPurpose` - purpose of the derived accountKey.
   - `cosignerData` - This is arbitrary data storage for
     future proofing little bit, it allows data up to 100 bytes.
   - `accountKey` - XPUB of the users, this will be used for deriving addresses
     in conjuction to other cosigners XPUBs.
   - `accountKeyProof` - Proving that you own accountKey, is for validating
     xpubs, so you don't accidentally upload incorrect accountKey.
-    Derivation used for signing is: `accountKey/MAX_NONHARDENED_INDEX/0`.
     - Data to sign: `walletName || cosignerName || authPubKey || accountKey`.
+    - using private key at: `accountKey/MAX_NONHARDENED_INDEX/0`.
 
 Used for authentication or verification:
   - `token` - token for authenticating HTTP requests(General authentication).
@@ -73,6 +72,7 @@ Used for authentication or verification:
   - `joinSignature` - signature for proving that cosigner knows the secret.
   Following data will be used for generating the `hash256`:
     - Data to sign: `walletName || cosignerName || authPubKey || accountKey`
+    - using joinPrivKey.
 
 ## Proposals
 ### Creating proposal
