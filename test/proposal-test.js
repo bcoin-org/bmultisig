@@ -10,6 +10,7 @@ const {ApprovalsMapRecord} = Proposal;
 const {RejectionsSetRecord} = Proposal;
 const {SignaturesRecord} = Proposal;
 const {hd} = require('bcoin');
+const secp256k1 = require('bcrypto/lib/secp256k1');
 
 const TEST_OPTIONS = {
   id: 1,
@@ -21,23 +22,22 @@ const TEST_OPTIONS = {
 
 const TEST_KEY = hd.generate().toPublic();
 
-const COSIGNERS = [
-  Cosigner.fromOptions({
-    id: 0,
-    name: 'cosigner1',
-    key: TEST_KEY
-  }),
-  Cosigner.fromOptions({
-    id: 1,
-    name: 'cosigner2',
-    key: TEST_KEY
-  }),
-  Cosigner.fromOptions({
-    id: 2,
-    name: 'cosigner3',
-    key: TEST_KEY
-  })
-];
+const COSIGNERS = [];
+
+for (let i = 0; i < 3; i++) {
+  const privKey = secp256k1.privateKeyGenerate();
+  const pubKey = secp256k1.publicKeyCreate(privKey, true);
+
+  const cosigner = Cosigner.fromOptions({
+    id: i,
+    name: 'cosigner' + (i + 1),
+    key: TEST_KEY,
+    authPubKey: pubKey,
+    joinSignature: Buffer.alloc(65, 1)
+  });
+
+  COSIGNERS.push(cosigner);
+}
 
 describe('Proposal', function () {
   it('should create proposal from option', () => {
