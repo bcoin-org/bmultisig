@@ -6,31 +6,38 @@
 const assert = require('./util/assert');
 const Cosigner = require('../lib/primitives/cosigner');
 const {hd} = require('bcoin');
+const secp256k1 = require('bcrypto/lib/secp256k1');
 
-// This path does not do much.
-const TEST_PATH = 'm/44\'/0\'/0\'/0/0';
-const TEST_TOKEN = Buffer.alloc(32);
-const TEST_KEY = hd.generate().toPublic();
-const NETWORK = 'main';
+const privKey = secp256k1.generatePrivateKey();
 
 // commonly used test case
+const NETWORK = 'main';
+
 const TEST_OPTIONS = {
   id: 5,
   tokenDepth: 0,
-  token: TEST_TOKEN,
+  token: Buffer.alloc(32),
   name: 'test1',
-  path: TEST_PATH,
-  key: TEST_KEY
+  purpose: 0,
+  fingerPrint: 0,
+  key: hd.generate().toPublic(),
+  authPubKey: secp256k1.publicKeyCreate(privKey, true),
+  joinSignature: Buffer.alloc(65, 1),
+  data: Buffer.from('m/44\'/0\'/0\'/0/0', 'utf8')
 };
 
 // its serialization
 const TEST_RAW = Buffer.from(
   '05' // id
   + '00000000' // tokenDepth
-  + TEST_TOKEN.toString('hex') // token
+  + TEST_OPTIONS.token.toString('hex') // token
   + '05' + '7465737431' // name
-  + '0f' + '6d2f3434272f30272f30272f302f30' // path
-  + TEST_KEY.toRaw(NETWORK).toString('hex')
+  + '00000000' // purpose
+  + '00000000' // fingerPrint
+  + '0f' + '6d2f3434272f30272f30272f302f30' // data
+  + TEST_OPTIONS.key.toRaw(NETWORK).toString('hex')
+  + TEST_OPTIONS.authPubKey.toString('hex')
+  + TEST_OPTIONS.joinSignature.toString('hex')
 , 'hex');
 
 describe('Cosigner', function () {
@@ -102,19 +109,22 @@ describe('Cosigner', function () {
     }
   });
 
-  it('should serialize json', () => {
+  it('should serialize json (no details)', () => {
     const cosigner = new Cosigner(TEST_OPTIONS);
 
     // no details
-    const json1 = cosigner.toJSON();
-    const cosigner1 = Cosigner.fromJSON(json1, false);
+    const json = cosigner.toJSON();
+    const cosigner1 = Cosigner.fromJSON(json, false);
 
-    assert.strictEqual(cosigner.equals(cosigner1, false), true);
+    assert.ok(cosigner.equals(cosigner1, false));
+  });
 
-    // with details
-    const json2 = cosigner.toJSON(true);
-    const cosigner2 = Cosigner.fromJSON(json2, true);
+  it('should serialize json (details)', () => {
+    const cosigner = new Cosigner(TEST_OPTIONS);
 
-    assert.strictEqual(cosigner.equals(cosigner2, true), true);
+    const json = cosigner.toJSON(true);
+    const cosigner1 = Cosigner.fromJSON(json, true);
+
+    assert.ok(cosigner.equals(cosigner1, true));
   });
 });
