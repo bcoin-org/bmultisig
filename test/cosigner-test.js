@@ -66,6 +66,14 @@ describe('Cosigner', function () {
     }
   });
 
+  it('should clone cosigner', () => {
+    const options = TEST_OPTIONS;
+    const cosigner1 = new Cosigner(options);
+    const cosigner2 = cosigner1.clone();
+
+    assert.ok(cosigner1.equals(cosigner2, true));
+  });
+
   it('should reserialize correctly', () => {
     const options = TEST_OPTIONS;
     const cosigner1 = new Cosigner(options);
