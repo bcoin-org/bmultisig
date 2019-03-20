@@ -5,13 +5,18 @@
 
 const assert = require('./util/assert');
 const Cosigner = require('../lib/primitives/cosigner');
+const bufio = require('bufio');
 const {hd} = require('bcoin');
 const secp256k1 = require('bcrypto/lib/secp256k1');
+const sigUtils = require('../lib/utils/sig');
 
 const privKey = secp256k1.generatePrivateKey();
 
 // commonly used test case
 const NETWORK = 'main';
+
+const accountPrivateKey = hd.generate();
+const accountPublicKey = accountPrivateKey.toPublic();
 
 const TEST_OPTIONS = {
   id: 5,
@@ -20,7 +25,7 @@ const TEST_OPTIONS = {
   name: 'test1',
   purpose: 0,
   fingerPrint: 0,
-  key: hd.generate().toPublic(),
+  key: accountPublicKey,
   authPubKey: secp256k1.publicKeyCreate(privKey, true),
   joinSignature: Buffer.alloc(65, 1),
   data: Buffer.from('m/44\'/0\'/0\'/0/0', 'utf8')
@@ -134,5 +139,21 @@ describe('Cosigner', function () {
     const cosigner1 = Cosigner.fromJSON(json, true);
 
     assert.ok(cosigner.equals(cosigner1, true));
+  });
+
+  it('should verify signature', () => {
+    const cosigner = new Cosigner(TEST_OPTIONS);
+    const proofKey = accountPrivateKey.derive(sigUtils.PROOF_INDEX, 0);
+    const data = bufio.write();
+
+    data.writeString(TEST_OPTIONS.name);
+    data.writeBytes(TEST_OPTIONS.authPubKey);
+    data.writeBytes(TEST_OPTIONS.key.toRaw());
+
+    const raw = data.render();
+
+    const signature = sigUtils.signMessage(raw, proofKey.privateKey);
+
+    assert.ok(cosigner.verifyProof(signature));
   });
 });
