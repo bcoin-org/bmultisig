@@ -6,38 +6,47 @@
 const assert = require('./util/assert');
 const walletUtils = require('./util/wallet');
 const testUtils = require('./util/utils');
+const CosignerCtx = require('./util/cosigner-context');
 
 // const Logger = require('blgr');
 const bcoin = require('bcoin');
-const {Script, KeyRing, MTX, Amount, hd} = bcoin;
+const {Script, KeyRing, MTX, Amount} = bcoin;
 const WalletDB = bcoin.wallet.WalletDB;
 const WalletNodeClient = require('../lib/walletclient');
 const MultisigDB = require('../lib/multisigdb');
-const Cosigner = require('../lib/primitives/cosigner');
 const Proposal = require('../lib/primitives/proposal');
 
 const TEST_WALLET_ID = 'test1';
 const TEST_WALLET_ID2 = 'test2';
 
-const TEST_COSIGNER_1 = 'cosigner1';
-const TEST_COSIGNER_2 = 'cosinger2';
-const TEST_COSIGNER_3 = 'cosigner3';
-
-const TEST_M = 2;
-const TEST_N = 2;
-
 describe('MultisigProposals', function () {
   // 2-of-2 will be used for tests
-  const priv1 = getPrivKey().deriveAccount(44, 0, 0);
-  const priv2 = getPrivKey().deriveAccount(44, 0, 0);
-  const priv3 = getPrivKey().deriveAccount(44, 0, 0);
-  const xpub1 = priv1.toPublic();
-  const xpub2 = priv2.toPublic();
-  const xpub3 = priv3.toPublic();
-
   let wdb, msdb;
-  let mswallet, wallet, pdb; // 2-of-2
+
+  /**
+   * @type {MultisigWallet}
+   */
+  let mswallet;
+
   let mswallet2; // 2-of-3
+
+  let wallet, pdb; // 2-of-2
+
+  const cosignerCtx1 = CosignerCtx.fromOptions({ name: 'cosigner1' });
+  const cosignerCtx2 = CosignerCtx.fromOptions({ name: 'cosigner2' });
+  const cosignerCtx3 = CosignerCtx.fromOptions({ name: 'cosigner3' });
+
+  const [priv1, priv2, priv3] = [
+    cosignerCtx1.accountPrivKey,
+    cosignerCtx2.accountPrivKey,
+    cosignerCtx3.accountPrivKey
+  ];
+
+  const [xpub1, xpub2, xpub3] = [
+    cosignerCtx1.accountKey,
+    cosignerCtx2.accountKey,
+    cosignerCtx3.accountKey
+  ];
 
   let cosigner1, cosigner2, cosigner3;
 
@@ -66,52 +75,23 @@ describe('MultisigProposals', function () {
     await wdb.open();
     await msdb.open();
 
-    cosigner1 = Cosigner.fromOptions({
-      name: TEST_COSIGNER_1,
-      key: xpub1
-    });
+    cosigner1 = cosignerCtx1.toCosigner();
+    cosigner2 = cosignerCtx2.toCosigner();
+    cosigner3 = cosignerCtx3.toCosigner();
 
-    cosigner2 = Cosigner.fromOptions({
-      name: TEST_COSIGNER_2,
-      key: xpub2
-    });
-
-    cosigner3 = Cosigner.fromOptions({
-      name: TEST_COSIGNER_3,
-      key: xpub3
-    });
-
-    mswallet = await msdb.create({
-      id: TEST_WALLET_ID,
-      m: TEST_M,
-      n: TEST_N
-    }, cosigner1);
+    mswallet = await mkWallet(msdb, TEST_WALLET_ID, 2, 2, [
+      cosigner1,
+      cosigner2
+    ]);
 
     wallet = mswallet.wallet;
-
-    let joined = await msdb.join(TEST_WALLET_ID, cosigner2);
-
-    assert(joined, 'Could not join the wallet');
-    assert.strictEqual(cosigner1, joined.cosigners[0]);
-    assert.strictEqual(cosigner2, joined.cosigners[1]);
-
     pdb = mswallet.pdb;
 
-    mswallet2 = await msdb.create({
-      id: TEST_WALLET_ID2,
-      m: 2,
-      n: 3
-    }, cosigner1);
-
-    for (const cosigner of [cosigner2, cosigner3]) {
-      joined = await msdb.join(TEST_WALLET_ID2, cosigner);
-
-      assert(joined);
-    }
-
-    assert.strictEqual(cosigner1, joined.cosigners[0]);
-    assert.strictEqual(cosigner2, joined.cosigners[1]);
-    assert.strictEqual(cosigner3, joined.cosigners[2]);
+    mswallet2 = await mkWallet(msdb, TEST_WALLET_ID2, 2, 3, [
+      cosigner1,
+      cosigner2,
+      cosigner3
+    ]);
   });
 
   afterEach(async () => {
@@ -387,7 +367,6 @@ describe('MultisigProposals', function () {
 
     const mtx = await mswallet.getProposalMTX(proposal.id);
     const paths = await mswallet.getInputPaths(mtx);
-
     const rings = testUtils.getMTXRings(mtx, paths, priv1, [xpub1, xpub2], 2);
     const sigs = testUtils.getMTXSignatures(mtx, rings);
 
@@ -696,6 +675,40 @@ describe('MultisigProposals', function () {
  * Helpers
  */
 
+/**
+ * @param {MultisigDB} msdb
+ * @param {String} walletName
+ * @param {Number} m
+ * @param {Number} n
+ * @param {Cosigner[]} cosigners
+ * @returns {MultisigWallet}
+ */
+
+async function mkWallet(msdb, walletName, m, n, cosigners = []) {
+  const author = cosigners.shift();
+  const mswallet = await msdb.create({
+    id: walletName,
+    m: m,
+    n: n
+  }, author);
+
+  assert(cosigners.length === n - 1);
+
+  let last;
+  for (const cosigner of cosigners) {
+    last = await msdb.join(walletName, cosigner);
+
+    assert.ok(last, 'Could not join wallet.');
+  }
+
+  assert.strictEqual(author, last.cosigners[0]);
+  for (const [i, cosigner] of cosigners.entries()) {
+    assert.strictEqual(cosigner, last.cosigners[i + 1]);
+  }
+
+  return mswallet;
+}
+
 function getTXOptions(btc) {
   return {
     subtractFee: true,
@@ -704,10 +717,6 @@ function getTXOptions(btc) {
       value: Amount.fromBTC(btc).toValue()
     }]
   };
-}
-
-function getPrivKey() {
-  return hd.PrivateKey.generate();
 }
 
 function generateAddress() {
