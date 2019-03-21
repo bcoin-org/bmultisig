@@ -61,7 +61,7 @@ General cosigner information:
     in conjuction to other cosigners XPUBs.
   - `accountKeyProof` - Proving that you own accountKey, is for validating
     xpubs, so you don't accidentally upload incorrect accountKey.
-    - Data to sign: `walletName || cosignerName || authPubKey || accountKey`.
+    - Data to sign: `cosignerName || authPubKey || accountKey`.
     - using private key at: `accountKey/MAX_NONHARDENED_INDEX/0`.
 
 Used for authentication or verification:
