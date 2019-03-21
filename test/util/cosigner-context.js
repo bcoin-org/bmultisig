@@ -45,6 +45,11 @@ class CosignerContext {
       this.walletName = options.walletName;
     }
 
+    if (options.token != null) {
+      assert(Buffer.isBuffer(options.token));
+      this.token = options.token;
+    }
+
     let master;
     if (options.master != null) {
       assert(hd.PrivateKey.isHDPrivateKey(options.master),
