@@ -141,9 +141,26 @@ describe('Cosigner', function () {
     assert.ok(cosigner.equals(cosigner1, true));
   });
 
+  it('should return HTTP options', () => {
+    const cosigner = new Cosigner(TEST_OPTIONS);
+    const options = cosigner.toHTTPOptions();
+
+    const joinSignature = cosigner.joinSignature.toString('hex');
+
+    assert.strictEqual(options.cosignerName, cosigner.name);
+    assert.strictEqual(options.cosignerPurpose, cosigner.purpose);
+    assert.strictEqual(options.cosignerFingerPrint, cosigner.fingerPrint);
+    assert.strictEqual(options.cosignerData, cosigner.data.toString('hex'));
+    assert.strictEqual(options.cosignerFingerPrint, cosigner.fingerPrint);
+    assert.strictEqual(options.accountKey, cosigner.key.xpubkey());
+    assert.strictEqual(options.token, cosigner.token.toString('hex'));
+    assert.strictEqual(options.joinSignature, joinSignature);
+    assert.strictEqual(options.authPubKey, cosigner.authPubKey.toString('hex'));
+  });
+
   it('should verify signature', () => {
     const cosigner = new Cosigner(TEST_OPTIONS);
-    const proofKey = accountPrivateKey.derive(sigUtils.PROOF_INDEX, 0);
+    const proofKey = accountPrivateKey.derive(sigUtils.PROOF_INDEX).derive(0);
     const data = bufio.write();
 
     data.writeString(TEST_OPTIONS.name);
@@ -155,5 +172,25 @@ describe('Cosigner', function () {
     const signature = sigUtils.signMessage(raw, proofKey.privateKey);
 
     assert.ok(cosigner.verifyProof(signature));
+  });
+
+  it('should verify join signature', () => {
+    const cosigner = new Cosigner(TEST_OPTIONS);
+    const joinPrivKey = secp256k1.privateKeyGenerate();
+    const joinPubKey = secp256k1.publicKeyCreate(joinPrivKey, true);
+    const walletName = 'test';
+
+    const data = bufio.write();
+
+    data.writeString(walletName);
+    data.writeString(TEST_OPTIONS.name);
+    data.writeBytes(TEST_OPTIONS.authPubKey);
+    data.writeBytes(TEST_OPTIONS.key.toRaw());
+
+    const raw = data.render();
+    const signature = sigUtils.signMessage(raw, joinPrivKey);
+    cosigner.joinSignature = signature;
+
+    assert.ok(cosigner.verifyJoinSignature(joinPubKey, walletName));
   });
 });
