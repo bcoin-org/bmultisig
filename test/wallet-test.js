@@ -13,7 +13,6 @@ const MultisigDB = require('../lib/multisigdb');
 const WalletNodeClient = require('../lib/walletclient');
 const MultisigWallet = require('../lib/wallet');
 const CosignerCtx = require('./util/cosigner-context');
-const Cosigner = require('../lib/primitives/cosigner');
 
 // at this point we don't use anything from MSDB
 const TEST_MSDB = {
@@ -30,12 +29,11 @@ const WALLET_OPTIONS = {
 
 describe('MultisigWallet', function () {
   const cosignerCtxs = [
-    new CosignerCtx({}),
-    new CosignerCtx({})
+    new CosignerCtx({ walletName: WALLET_OPTIONS.id }),
+    new CosignerCtx({ walletName: WALLET_OPTIONS.id })
   ];
 
   const testCosigners = cosignerCtxs.map(c => c.toCosigner());
-  const testCosignerOptions = testCosigners.map(c => c.toJSON());
 
   let wdb, msdb;
 
@@ -108,6 +106,7 @@ describe('MultisigWallet', function () {
 
   it('should create multisig wallet', async () => {
     const cosignerCtx = new CosignerCtx({
+      walletName: WALLET_OPTIONS.id,
       token: Buffer.alloc(32, 3)
     });
 
@@ -128,6 +127,7 @@ describe('MultisigWallet', function () {
 
   it('should fail creating existing wallet', async () => {
     const cosignerCtx = new CosignerCtx({
+      walletName: WALLET_OPTIONS.id,
       name: 'cosigner1',
       token: Buffer.alloc(32, 4)
     });
@@ -140,6 +140,7 @@ describe('MultisigWallet', function () {
 
     try {
       const cosignerCtx2 = new CosignerCtx({
+        walletName: WALLET_OPTIONS.id,
         name: 'cosigner2',
         master: cosignerCtx.master,
         token: Buffer.alloc(32, 4)
@@ -159,6 +160,7 @@ describe('MultisigWallet', function () {
 
     try {
       const cosignerCtx3 = new CosignerCtx({
+        walletName: WALLET_OPTIONS.id,
         name: 'cosigner2',
         master: cosignerCtx.master,
         token: Buffer.alloc(32, 5)
@@ -177,7 +179,10 @@ describe('MultisigWallet', function () {
   });
 
   it('should get multisig wallet', async () => {
-    const cosignerCtx = new CosignerCtx({ name: 'cosigner1' });
+    const cosignerCtx = new CosignerCtx({
+      walletName: WALLET_OPTIONS.id,
+      name: 'cosigner1'
+    });
     const cosigner = cosignerCtx.toCosigner();
     const mswallet = await msdb.create(WALLET_OPTIONS, cosigner);
     const wallet = mswallet.wallet;
@@ -217,6 +222,7 @@ describe('MultisigWallet', function () {
     }
 
     const cosignerCtx = new CosignerCtx({
+      walletName: WALLET_OPTIONS.id,
       name: 'cosigner',
       token: Buffer.alloc(32, 6)
     });
@@ -249,6 +255,7 @@ describe('MultisigWallet', function () {
 
   it('should remove multisig wallet', async () => {
     const cosignerCtx = new CosignerCtx({
+      walletName: WALLET_OPTIONS.id,
       name: 'cosigner1',
       token: Buffer.alloc(32, 7)
     });
@@ -274,9 +281,18 @@ describe('MultisigWallet', function () {
   });
 
   it('should join wallet with joinKey', async () => {
-    const cosignerCtx1 = new CosignerCtx({ name: 'cosigner1' });
-    const cosignerCtx2 = new CosignerCtx({ name: 'cosigner2' });
-    const cosignerCtx3 = new CosignerCtx({ name: 'cosigner3' });
+    const cosignerCtx1 = new CosignerCtx({
+      walletName: WALLET_OPTIONS.id,
+      name: 'cosigner1'
+    });
+    const cosignerCtx2 = new CosignerCtx({
+      walletName: WALLET_OPTIONS.id,
+      name: 'cosigner2'
+    });
+    const cosignerCtx3 = new CosignerCtx({
+      walletName: WALLET_OPTIONS.id,
+      name: 'cosigner3'
+    });
 
     const options1 = {
       m: 1,
@@ -328,8 +344,14 @@ describe('MultisigWallet', function () {
   });
 
   it('should fail joining with duplicate XPUB', async () => {
-    const cosignerCtx1 = new CosignerCtx({ name: 'cosigner1' });
-    const cosignerCtx2 = new CosignerCtx({ name: 'cosigner2' });
+    const cosignerCtx1 = new CosignerCtx({
+      walletName: WALLET_OPTIONS.id,
+      name: 'cosigner1'
+    });
+    const cosignerCtx2 = new CosignerCtx({
+      walletName: WALLET_OPTIONS.id,
+      name: 'cosigner2'
+    });
 
     const options = Object.assign({
       m: 1,
@@ -345,6 +367,7 @@ describe('MultisigWallet', function () {
     let err;
     try {
       const cosignerCtx = new CosignerCtx({
+        walletName: WALLET_OPTIONS.id,
         name: 'cosigner3',
         master: cosignerCtx1.master
       });
@@ -363,6 +386,7 @@ describe('MultisigWallet', function () {
 
     try {
       const cosignerCtx = new CosignerCtx({
+        walletName: WALLET_OPTIONS.id,
         name: 'cosigner3',
         master: cosignerCtx2.master
       });
@@ -383,9 +407,18 @@ describe('MultisigWallet', function () {
       n: 2
     };
 
-    const cosignerCtx1 = new CosignerCtx({ name: 'cosigner1' });
-    const cosignerCtx2 = new CosignerCtx({ name: 'cosigner2' });
-    const cosignerCtx3 = new CosignerCtx({ name: 'cosigner3' });
+    const cosignerCtx1 = new CosignerCtx({
+      walletName: WALLET_OPTIONS.id,
+      name: 'cosigner1'
+    });
+    const cosignerCtx2 = new CosignerCtx({
+      walletName: WALLET_OPTIONS.id,
+      name: 'cosigner2'
+    });
+    const cosignerCtx3 = new CosignerCtx({
+      walletName: WALLET_OPTIONS.id,
+      name: 'cosigner3'
+    });
 
     const cosigner1 = cosignerCtx1.toCosigner();
     const mswallet = await msdb.create(options, cosigner1);
@@ -412,11 +445,13 @@ describe('MultisigWallet', function () {
 
   it('should authenticate user with cosignerToken', async () => {
     const cosignerCtx1 = new CosignerCtx({
+      walletName: WALLET_OPTIONS.id,
       name: 'cosigner1',
       token: Buffer.alloc(32, 1)
     });
 
     const cosignerCtx2 = new CosignerCtx({
+      walletName: WALLET_OPTIONS.id,
       name: 'cosigner2',
       token: Buffer.alloc(32, 2)
     });
@@ -455,6 +490,7 @@ describe('MultisigWallet', function () {
     const token2 = Buffer.alloc(32, 2);
 
     const cosignerCtx = new CosignerCtx({
+      walletName: WALLET_OPTIONS.id,
       name: 'cosigner1',
       token: token1
     });

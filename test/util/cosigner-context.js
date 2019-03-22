@@ -9,9 +9,10 @@ const hash160 = require('bcrypto/lib/hash160');
 const secp256k1 = require('bcrypto/lib/secp256k1');
 
 const Cosigner = require('../../lib/primitives/cosigner');
+const sigUtils = require('../../lib/utils/sig');
 
-const EMPTY_SIG = Buffer.alloc(65, 0x00);
 const NULL_TOKEN = Buffer.alloc(32, 0x00);
+const EMPTY = Buffer.alloc(0);
 
 class CosignerContext {
   constructor(options) {
@@ -21,6 +22,7 @@ class CosignerContext {
     this.purpose = 0;
     this.fingerPrint = 0;
     this.name = 'cosigner';
+    this.data = EMPTY;
     this.walletName = '';
 
     this.token = NULL_TOKEN;
@@ -30,6 +32,9 @@ class CosignerContext {
 
     this.joinPrivKey = null;
     this.joinPubKey = null;
+
+    this._joinSignature = null;
+    this._xpubProof = null;
 
     this.fromOptions(options);
   }
@@ -49,6 +54,14 @@ class CosignerContext {
       assert(Buffer.isBuffer(options.token));
       this.token = options.token;
     }
+
+    if (options.data != null) {
+      assert(Buffer.isBuffer(options.data));
+      this.data = options.data;
+    }
+
+    if (options.network != null)
+      this.network = Network.get(options.network);
 
     let master;
     if (options.master != null) {
@@ -94,8 +107,52 @@ class CosignerContext {
     this.accountKey = this.accountPrivKey.toPublic();
   }
 
-  static fromOptions(options) {
-    return new this(options);
+  get xpub() {
+    return this.accountKey.xpubkey(this.network);
+  }
+
+  get joinSignature() {
+    if (this._joinSignature == null) {
+      assert(this.joinPrivKey != null);
+      assert(this.accountKey);
+      assert(this.name !== '');
+      assert(this.walletName !== '');
+      assert(this.authPubKey != null);
+
+      const hash = sigUtils.getJoinHash(this.walletName, {
+        name: this.name,
+        authPubKey: this.authPubKey,
+        key: this.accountKey
+      }, this.network);
+
+      this._joinSignature = sigUtils.signHash(hash, this.joinPrivKey);
+    }
+
+    return this._joinSignature;
+  }
+
+  get xpubProof() {
+    if (this._xpubProof == null) {
+      assert(this.accountKey);
+      assert(this.name !== '');
+      assert(this.authPubKey != null);
+
+      const hash = sigUtils.getProofHash({
+        name: this.name,
+        authPubKey: this.authPubKey,
+        key: this.accountKey
+      }, this.network);
+
+      const proofHDPrivKey = this.accountPrivKey
+        .derive(sigUtils.PROOF_INDEX)
+        .derive(0);
+
+      const proofPrivKey = proofHDPrivKey.privateKey;
+
+      this._xpubProof = sigUtils.signHash(hash, proofPrivKey);
+    }
+
+    return this._xpubProof;
   }
 
   /**
@@ -107,15 +164,26 @@ class CosignerContext {
       name: this.name,
       key: this.accountKey,
       authPubKey: this.authPubKey,
-      joinSignature: EMPTY_SIG,
+      joinSignature: this.joinSignature,
       fingerPrint: this.fingerPrint,
       token: this.token,
       purpose: this.purpose
     });
   }
 
-  get xpub() {
-    return this.accountKey.xpubkey(this.network);
+  toHTTPOptions() {
+    return {
+      cosignerName: this.name,
+      cosignerPurpose: this.purpose,
+      cosignerFingerPrint: this.fingerPrint,
+      cosignerData: this.data.toString('hex'),
+
+      token: this.token.toString('hex'),
+      accountKey: this.xpub,
+      accountKeyProof: this.xpubProof.toString('hex'),
+      authPubKey: this.authPubKey.toString('hex'),
+      joinSignature: this.joinSignature.toString('hex')
+    };
   }
 
   [custom]() {
@@ -130,6 +198,10 @@ class CosignerContext {
       + `  joinPubKey=${this.joinPubKey.toString('hex')}\n`
       + `  cosigner=${util.inspect(this.cosigner)}`
       + '/>';
+  }
+
+  static fromOptions(options) {
+    return new this(options);
   }
 }
 

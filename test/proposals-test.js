@@ -32,9 +32,18 @@ describe('MultisigProposals', function () {
 
   let wallet, pdb; // 2-of-2
 
-  const cosignerCtx1 = CosignerCtx.fromOptions({ name: 'cosigner1' });
-  const cosignerCtx2 = CosignerCtx.fromOptions({ name: 'cosigner2' });
-  const cosignerCtx3 = CosignerCtx.fromOptions({ name: 'cosigner3' });
+  const cosignerCtx1 = new CosignerCtx({
+    walletName: TEST_WALLET_ID,
+    name: 'cosigner1'
+  });
+  const cosignerCtx2 = new CosignerCtx({
+    walletName: TEST_WALLET_ID,
+    name: 'cosigner2'
+  });
+  const cosignerCtx3 = new CosignerCtx({
+    walletName: TEST_WALLET_ID,
+    name: 'cosigner3'
+  });
 
   const [priv1, priv2, priv3] = [
     cosignerCtx1.accountPrivKey,
