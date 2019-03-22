@@ -10,8 +10,9 @@ const testUtils = require('./util/utils');
 const bcoin = require('bcoin');
 const {Network, FullNode} = bcoin;
 const {MTX, TX, Amount, KeyRing} = bcoin;
-const {wallet, hd} = bcoin;
+const {wallet} = bcoin;
 const Proposal = require('../lib/primitives/proposal');
+const CosignerCtx = require('./util/cosigner-context');
 
 const {MultisigClient} = require('bmultisig-client');
 const {WalletClient} = require('bclient');
@@ -62,7 +63,8 @@ const wdb = walletNode.wdb;
 const WALLET_OPTIONS = {
   m: 2,
   n: 2,
-  id: 'test'
+  id: 'test',
+  witness: true
 };
 
 describe('HTTP', function () {
@@ -81,14 +83,23 @@ describe('HTTP', function () {
   let walletAdminClient;
   let testWalletClient1;
   let testWalletClient2;
-  let joinKey;
 
   let pid1, pid2; // proposal ids
 
-  const priv1 = getPrivKey().deriveAccount(44, 0, 0);
-  const priv2 = getPrivKey().deriveAccount(44, 0, 0);
-  const xpub1 = priv1.toPublic();
-  const xpub2 = priv2.toPublic();
+  const cosignerCtx1 = new CosignerCtx({
+    walletName: WALLET_OPTIONS.id,
+    name: 'cosigner1',
+    token: Buffer.alloc(32, 1),
+    network
+  });
+
+  const cosignerCtx2 = new CosignerCtx({
+    walletName: WALLET_OPTIONS.id,
+    name: 'cosigner2',
+    token: Buffer.alloc(32, 2),
+    joinPrivKey: cosignerCtx1.joinPrivKey,
+    network
+  });
 
   beforeEach(async () => {
     adminClient = new MultisigClient({
@@ -153,17 +164,15 @@ describe('HTTP', function () {
   });
 
   it('should create multisig wallet', async () => {
-    const xpub = xpub1.xpubkey(network);
-
-    const cosignerName = 'cosigner1';
-    const cosignerToken = Buffer.alloc(32, 1).toString('hex');
     const id = WALLET_OPTIONS.id;
+    const options = cosignerCtx1.toHTTPOptions();
+    const joinPubKey = cosignerCtx1.joinPubKey.toString('hex');
 
-    const walletOptions = Object.assign({
-      cosignerName,
-      token: cosignerToken,
-      accountKey: xpub
-    }, WALLET_OPTIONS);
+    const walletOptions = Object.assign({},
+      WALLET_OPTIONS,
+      options,
+      {joinPubKey}
+    );
 
     const wallet = await multisigClient.createWallet(id, walletOptions);
     const multisigWallets = await adminClient.getWallets();
@@ -174,13 +183,15 @@ describe('HTTP', function () {
     assert.strictEqual(wallet.cosigners.length, 1);
 
     const cosigner = wallet.cosigners[0];
-    assert.strictEqual(cosigner.name, 'cosigner1');
-    assert.strictEqual(cosigner.path, '');
+    assert.strictEqual(cosigner.name, options.cosignerName);
+    assert.strictEqual(cosigner.purpose, options.cosignerPurpose);
+    assert.strictEqual(cosigner.data, options.cosignerData);
+    assert.strictEqual(cosigner.fingerPrint, options.cosignerFingerPrint);
+    assert.strictEqual(cosigner.token, options.token);
     assert.strictEqual(cosigner.token.length, 64);
-    assert.strictEqual(cosigner.token, cosignerToken);
     assert.strictEqual(cosigner.tokenDepth, 0);
-
-    joinKey = wallet.joinKey;
+    assert.strictEqual(cosigner.authPubKey, options.authPubKey);
+    assert.strictEqual(cosigner.joinSignature, options.joinSignature);
 
     testWalletClient1 = new MultisigClient({
       port: network.walletPort,
@@ -232,23 +243,19 @@ describe('HTTP', function () {
   });
 
   it('should join multisig wallet', async () => {
-    const xpub = xpub2.xpubkey(network);
-    const cosignerName = 'cosigner2';
-    const cosignerToken = Buffer.alloc(32, 2).toString('hex');
+    const id = WALLET_OPTIONS.id;
+    const options = cosignerCtx2.toHTTPOptions();
 
     // join event
+    // TODO: Rewrite so we don't have uncaught rejections.
+    // We don't have cancallable promises...
     const joinEvents = Promise.all([
       waitForBind(testWalletClient1, 'join'),
       waitForBind(adminClient, 'join'),
       waitForBind(walletAdminClient, 'join')
     ]);
 
-    const mswallet = await multisigClient.joinWallet(WALLET_OPTIONS.id, {
-      cosignerName,
-      joinKey,
-      token: cosignerToken,
-      accountKey: xpub
-    });
+    const mswallet = await multisigClient.joinWallet(id, options);
 
     const eventResponses = await joinEvents;
 
@@ -270,10 +277,12 @@ describe('HTTP', function () {
 
     assert.deepStrictEqual(cosigners[0], {
       id: 0,
-      name: 'cosigner1'
+      name: cosignerCtx1.name,
+      authPubKey: cosignerCtx1.authPubKey.toString('hex'),
+      joinSignature: cosignerCtx1.joinSignature.toString('hex')
     });
 
-    assert.strictEqual(cosigners[1].token, cosignerToken);
+    assert.strictEqual(cosigners[1].token, options.token);
     assert.notTypeOf(cosigners[1].token, 'null');
 
     testWalletClient2 = new MultisigClient({
@@ -282,14 +291,17 @@ describe('HTTP', function () {
       token: cosigners[1].token
     });
 
-    assert.deepStrictEqual(cosigners[1], Object.assign({
+    assert.deepStrictEqual(cosigners[1], {
       id: 1,
-      name: 'cosigner2',
-      path: '',
-      tokenDepth: 0
-    }, {
-      token: cosigners[1].token
-    }));
+      name: options.cosignerName,
+      token: options.token,
+      tokenDepth: 0,
+      data: options.cosignerData,
+      authPubKey: options.authPubKey,
+      joinSignature: options.joinSignature,
+      fingerPrint: options.cosignerFingerPrint,
+      purpose: options.cosignerPurpose
+    });
   });
 
   it('should get multisig wallet by id', async () => {
@@ -302,8 +314,18 @@ describe('HTTP', function () {
     assert.strictEqual(multisigWallet.initialized, true);
     assert.strictEqual(multisigWallet.cosigners.length, 2);
     assert.deepEqual(multisigWallet.cosigners, [
-      { id: 0, name: 'cosigner1' },
-      { id: 1, name: 'cosigner2' }
+      {
+        id: 0,
+        name: cosignerCtx1.name,
+        authPubKey: cosignerCtx1.authPubKey.toString('hex'),
+        joinSignature: cosignerCtx1.joinSignature.toString('hex')
+      },
+      {
+        id: 1,
+        name: cosignerCtx2.name,
+        authPubKey: cosignerCtx2.authPubKey.toString('hex'),
+        joinSignature: cosignerCtx2.joinSignature.toString('hex')
+      }
     ]);
 
     // with details
@@ -484,7 +506,13 @@ describe('HTTP', function () {
 
     assert.instanceOf(tx, TX);
     assert.strictEqual(proposal.author, 1);
-    assert.deepStrictEqual(proposal.authorDetails, {id: 1, name: 'cosigner2'});
+    assert.deepStrictEqual(proposal.authorDetails, {
+      id: 1,
+      name: cosignerCtx2.name,
+      authPubKey: cosignerCtx2.authPubKey.toString('hex'),
+      joinSignature: cosignerCtx2.joinSignature.toString('hex')
+    });
+
     assert.strictEqual(proposal.memo, 'proposal1');
     assert.strictEqual(proposal.m, WALLET_OPTIONS.m);
     assert.strictEqual(proposal.n, WALLET_OPTIONS.n);
@@ -497,7 +525,12 @@ describe('HTTP', function () {
 
     assert.strictEqual(proposals.length, 1);
     assert.strictEqual(proposal.author, 1);
-    assert.deepStrictEqual(proposal.authorDetails, {id: 1, name: 'cosigner2'});
+    assert.deepStrictEqual(proposal.authorDetails, {
+      id: 1,
+      name: cosignerCtx2.name,
+      authPubKey: cosignerCtx2.authPubKey.toString('hex'),
+      joinSignature: cosignerCtx2.joinSignature.toString('hex')
+    });
   });
 
   it('should get proposal', async () => {
@@ -575,7 +608,9 @@ describe('HTTP', function () {
       assert.deepStrictEqual(result.proposal, proposal);
       assert.deepStrictEqual(result.cosigner, {
         id: 0,
-        name: 'cosigner1'
+        name: cosignerCtx1.name,
+        authPubKey: cosignerCtx1.authPubKey.toString('hex'),
+        joinSignature: cosignerCtx1.joinSignature.toString('hex')
       });
     }
 
@@ -597,7 +632,9 @@ describe('HTTP', function () {
     assert.strictEqual(proposal.rejections[0], 0);
     assert.deepStrictEqual(proposal.cosignerRejections[0], {
       id: 0,
-      name: 'cosigner1'
+      name: cosignerCtx1.name,
+      authPubKey: cosignerCtx1.authPubKey.toString('hex'),
+      joinSignature: cosignerCtx1.joinSignature.toString('hex')
     });
   });
 
@@ -614,7 +651,9 @@ describe('HTTP', function () {
     assert.strictEqual(proposal.author, 0);
     assert.deepStrictEqual(proposal.authorDetails, {
       id: 0,
-      name: 'cosigner1'
+      name: cosignerCtx1.name,
+      authPubKey: cosignerCtx1.authPubKey.toString('hex'),
+      joinSignature: cosignerCtx1.joinSignature.toString('hex')
     });
 
     assert.strictEqual(proposal.statusCode, Proposal.status.PROGRESS);
@@ -650,6 +689,10 @@ describe('HTTP', function () {
     const mtx = MTX.fromJSON(txinfo.tx);
     const paths = txinfo.paths;
 
+    const priv1 = cosignerCtx1.accountPrivKey;
+    const xpub1 = cosignerCtx1.accountKey;
+    const xpub2 = cosignerCtx2.accountKey;
+
     const rings = testUtils.getMTXRings(mtx, paths, priv1, [xpub1, xpub2], 2);
 
     for (const ring of rings) {
@@ -678,7 +721,9 @@ describe('HTTP', function () {
     const eventResults = await approveEvents;
     const cosigner = {
       id: 0,
-      name: 'cosigner1'
+      name: cosignerCtx1.name,
+      authPubKey: cosignerCtx1.authPubKey.toString('hex'),
+      joinSignature: cosignerCtx1.joinSignature.toString('hex')
     };
 
     for (const [wid, result] of eventResults) {
@@ -712,6 +757,9 @@ describe('HTTP', function () {
     const mtx = MTX.fromJSON(txinfo.tx);
     const paths = txinfo.paths;
 
+    const priv2 = cosignerCtx2.accountPrivKey;
+    const xpub1 = cosignerCtx1.accountKey;
+    const xpub2 = cosignerCtx2.accountKey;
     const rings = testUtils.getMTXRings(mtx, paths, priv2, [xpub1, xpub2], 2);
 
     for (const ring of rings) {
@@ -739,8 +787,18 @@ describe('HTTP', function () {
     const proposal = response.proposal;
     const eventResults = await approveEvents;
     const cosigners = [
-      { id: 0, name: 'cosigner1' },
-      { id: 1, name: 'cosigner2' }
+      {
+        id: 0,
+        name: cosignerCtx1.name,
+        authPubKey: cosignerCtx1.authPubKey.toString('hex'),
+        joinSignature: cosignerCtx1.joinSignature.toString('hex')
+      },
+      {
+        id: 1,
+        name: cosignerCtx2.name,
+        authPubKey: cosignerCtx2.authPubKey.toString('hex'),
+        joinSignature: cosignerCtx2.joinSignature.toString('hex')
+      }
     ];
 
     for (const [wid, result] of eventResults) {
@@ -754,7 +812,9 @@ describe('HTTP', function () {
 
       assert.deepStrictEqual(result.cosigner, {
         id: 1,
-        name: 'cosigner2'
+        name: cosignerCtx2.name,
+        authPubKey: cosignerCtx2.authPubKey.toString('hex'),
+        joinSignature: cosignerCtx2.joinSignature.toString('hex')
       });
     }
 
@@ -830,10 +890,6 @@ function getTXOptions(btc) {
       value: Amount.fromBTC(btc).toValue()
     }]
   };
-}
-
-function getPrivKey() {
-  return hd.PrivateKey.generate();
 }
 
 function generateAddress() {
