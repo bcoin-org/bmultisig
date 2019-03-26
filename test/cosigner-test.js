@@ -158,7 +158,7 @@ describe('Cosigner', function () {
     assert.strictEqual(options.authPubKey, cosigner.authPubKey.toString('hex'));
   });
 
-  it('should verify signature', () => {
+  it('should verify proof signature', () => {
     const cosigner = new Cosigner(TEST_OPTIONS);
     const proofKey = accountPrivateKey.derive(sigUtils.PROOF_INDEX).derive(0);
     const data = bufio.write();
@@ -172,6 +172,17 @@ describe('Cosigner', function () {
     const signature = sigUtils.signMessage(raw, proofKey.privateKey);
 
     assert.ok(cosigner.verifyProof(signature));
+  });
+
+  it('should verify proof signature (client)', () => {
+    const cosigner = new Cosigner(TEST_OPTIONS);
+    const proofKey = accountPrivateKey.derive(sigUtils.PROOF_INDEX).derive(0);
+    const hash = cosigner.getProofHash(NETWORK);
+    const signature = sigUtils.signHash(hash, proofKey.privateKey);
+
+    const clientCosigner = Cosigner.fromJSON(cosigner.toJSON());
+
+    assert.ok(clientCosigner.verifyProof(signature));
   });
 
   it('should verify join signature', () => {
@@ -192,5 +203,20 @@ describe('Cosigner', function () {
     cosigner.joinSignature = signature;
 
     assert.ok(cosigner.verifyJoinSignature(joinPubKey, walletName));
+  });
+
+  it('should verify join signature (client)', () => {
+    const cosigner = new Cosigner(TEST_OPTIONS);
+    const joinPrivKey = secp256k1.privateKeyGenerate();
+    const joinPubKey = secp256k1.publicKeyCreate(joinPrivKey, true);
+    const walletName = 'test';
+
+    const hash = cosigner.getJoinHash(walletName);
+    const signature = sigUtils.signHash(hash, joinPrivKey);
+    cosigner.joinSignature = signature;
+
+    const clientCosigner = Cosigner.fromJSON(cosigner.toJSON());
+
+    assert.ok(clientCosigner.verifyJoinSignature(joinPubKey, walletName));
   });
 });
