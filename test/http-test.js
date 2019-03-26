@@ -192,6 +192,7 @@ describe('HTTP', function () {
     assert.strictEqual(cosigner.tokenDepth, 0);
     assert.strictEqual(cosigner.authPubKey, options.authPubKey);
     assert.strictEqual(cosigner.joinSignature, options.joinSignature);
+    assert.strictEqual(cosigner.key.xpubkey, options.accountKey);
 
     testWalletClient1 = new MultisigClient({
       port: network.walletPort,
@@ -279,7 +280,8 @@ describe('HTTP', function () {
       id: 0,
       name: cosignerCtx1.name,
       authPubKey: cosignerCtx1.authPubKey.toString('hex'),
-      joinSignature: cosignerCtx1.joinSignature.toString('hex')
+      joinSignature: cosignerCtx1.joinSignature.toString('hex'),
+      key: cosignerCtx1.accountKey.toJSON(network)
     });
 
     assert.strictEqual(cosigners[1].token, options.token);
@@ -300,7 +302,10 @@ describe('HTTP', function () {
       authPubKey: options.authPubKey,
       joinSignature: options.joinSignature,
       fingerPrint: options.cosignerFingerPrint,
-      purpose: options.cosignerPurpose
+      purpose: options.cosignerPurpose,
+      key: {
+        xpubkey: options.accountKey
+      }
     });
   });
 
@@ -318,13 +323,15 @@ describe('HTTP', function () {
         id: 0,
         name: cosignerCtx1.name,
         authPubKey: cosignerCtx1.authPubKey.toString('hex'),
-        joinSignature: cosignerCtx1.joinSignature.toString('hex')
+        joinSignature: cosignerCtx1.joinSignature.toString('hex'),
+        key: cosignerCtx1.accountKey.toJSON(network)
       },
       {
         id: 1,
         name: cosignerCtx2.name,
         authPubKey: cosignerCtx2.authPubKey.toString('hex'),
-        joinSignature: cosignerCtx2.joinSignature.toString('hex')
+        joinSignature: cosignerCtx2.joinSignature.toString('hex'),
+        key: cosignerCtx2.accountKey.toJSON(network)
       }
     ]);
 
@@ -510,7 +517,8 @@ describe('HTTP', function () {
       id: 1,
       name: cosignerCtx2.name,
       authPubKey: cosignerCtx2.authPubKey.toString('hex'),
-      joinSignature: cosignerCtx2.joinSignature.toString('hex')
+      joinSignature: cosignerCtx2.joinSignature.toString('hex'),
+      key: cosignerCtx2.accountKey.toJSON(network)
     });
 
     assert.strictEqual(proposal.memo, 'proposal1');
@@ -529,7 +537,8 @@ describe('HTTP', function () {
       id: 1,
       name: cosignerCtx2.name,
       authPubKey: cosignerCtx2.authPubKey.toString('hex'),
-      joinSignature: cosignerCtx2.joinSignature.toString('hex')
+      joinSignature: cosignerCtx2.joinSignature.toString('hex'),
+      key: cosignerCtx2.accountKey.toJSON(network)
     });
   });
 
@@ -610,7 +619,8 @@ describe('HTTP', function () {
         id: 0,
         name: cosignerCtx1.name,
         authPubKey: cosignerCtx1.authPubKey.toString('hex'),
-        joinSignature: cosignerCtx1.joinSignature.toString('hex')
+        joinSignature: cosignerCtx1.joinSignature.toString('hex'),
+        key: cosignerCtx1.accountKey.toJSON(network)
       });
     }
 
@@ -634,7 +644,8 @@ describe('HTTP', function () {
       id: 0,
       name: cosignerCtx1.name,
       authPubKey: cosignerCtx1.authPubKey.toString('hex'),
-      joinSignature: cosignerCtx1.joinSignature.toString('hex')
+      joinSignature: cosignerCtx1.joinSignature.toString('hex'),
+      key: cosignerCtx1.accountKey.toJSON(network)
     });
   });
 
@@ -653,7 +664,8 @@ describe('HTTP', function () {
       id: 0,
       name: cosignerCtx1.name,
       authPubKey: cosignerCtx1.authPubKey.toString('hex'),
-      joinSignature: cosignerCtx1.joinSignature.toString('hex')
+      joinSignature: cosignerCtx1.joinSignature.toString('hex'),
+      key: cosignerCtx1.accountKey.toJSON(network)
     });
 
     assert.strictEqual(proposal.statusCode, Proposal.status.PROGRESS);
@@ -723,7 +735,8 @@ describe('HTTP', function () {
       id: 0,
       name: cosignerCtx1.name,
       authPubKey: cosignerCtx1.authPubKey.toString('hex'),
-      joinSignature: cosignerCtx1.joinSignature.toString('hex')
+      joinSignature: cosignerCtx1.joinSignature.toString('hex'),
+      key: cosignerCtx1.accountKey.toJSON(network)
     };
 
     for (const [wid, result] of eventResults) {
@@ -791,13 +804,15 @@ describe('HTTP', function () {
         id: 0,
         name: cosignerCtx1.name,
         authPubKey: cosignerCtx1.authPubKey.toString('hex'),
-        joinSignature: cosignerCtx1.joinSignature.toString('hex')
+        joinSignature: cosignerCtx1.joinSignature.toString('hex'),
+        key: cosignerCtx1.accountKey.toJSON(network)
       },
       {
         id: 1,
         name: cosignerCtx2.name,
         authPubKey: cosignerCtx2.authPubKey.toString('hex'),
-        joinSignature: cosignerCtx2.joinSignature.toString('hex')
+        joinSignature: cosignerCtx2.joinSignature.toString('hex'),
+        key: cosignerCtx2.accountKey.toJSON(network)
       }
     ];
 
@@ -814,7 +829,8 @@ describe('HTTP', function () {
         id: 1,
         name: cosignerCtx2.name,
         authPubKey: cosignerCtx2.authPubKey.toString('hex'),
-        joinSignature: cosignerCtx2.joinSignature.toString('hex')
+        joinSignature: cosignerCtx2.joinSignature.toString('hex'),
+        key: cosignerCtx2.accountKey.toJSON(network)
       });
     }
 
