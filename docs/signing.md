@@ -27,14 +27,20 @@ to provide signatures, we will describe them in this document.
 
 ## Wallet creation and joining.
 ### Wallet creation
-Before creating wallet, author of the wallet
-will first generate private key, public key and choose a name
-for a wallet. PrivateKey + WalletName will be shared
-to other cosigners to join the wallet.
+Before creating wallet, author of the wallet will have to generate private key.
+This private key will be used to sign joining request by other cosigners.
+
+After generating `joinPrivateKey` for the wallet, author will
+also create `joinPubKey` from the private key. Author will need to submit
+`joinPubKey` and `joinSignature` (see below) to the server.
+
+After wallet has been created author needs to share `joinPrivateKey` and
+`walletName` with other cosigners.
   - Clients can decide how to format this data,
     e.g. `{ joinPrivKey: "...", "walletName": "..." }`
-  - `token` and `joinPubKey` must be stored securely on
-    client side, `joinPubKey` will be used for verification.
+  - `token` and `joinPubKey` must be stored securely on client side.
+  - `joinPubKey` can be used for verifying joining signatures of other
+  - cosigners.
 
 When creating wallet, following data is being passed to the server
 (check `Wallet joining` for other options):
