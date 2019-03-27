@@ -176,9 +176,10 @@ describe('MultisigProposals', function () {
     assert.strictEqual(coins.length, 1);
 
     const txoptions = getTXOptions(1);
+    const options = { memo: 'proposal', timestamp: now() };
 
     const proposal = await mswallet.createProposal(
-      'proposal-1',
+      { ...options, ...txoptions },
       cosigner1,
       txoptions
     );
@@ -188,7 +189,7 @@ describe('MultisigProposals', function () {
     let err;
     try {
       await mswallet.createProposal(
-        'proposal-2',
+        { ...options, ...txoptions },
         cosigner2,
         txoptions
       );
@@ -208,9 +209,10 @@ describe('MultisigProposals', function () {
     assert.strictEqual(coins.length, 1);
 
     const txoptions = getTXOptions(1);
+    const options = { memo: 'proposal', timestamp: now() };
 
     const proposal = await mswallet.createProposal(
-      'proposal-1',
+      { ...options, ...txoptions },
       cosigner1,
       txoptions
     );
@@ -228,7 +230,7 @@ describe('MultisigProposals', function () {
     let err;
     try {
       await mswallet.createProposal(
-        'proposal-2',
+        { ...options, ...txoptions },
         cosigner2,
         txoptions
       );
@@ -246,10 +248,13 @@ describe('MultisigProposals', function () {
 
     const coins = await wallet.getCoins();
 
+    const txoptions = getTXOptions(1);
+    const options = { memo: 'proposal', timestamp: now() };
+
     const proposal = await mswallet.createProposal(
-      'proposal',
+      { ...options, ...txoptions},
       cosigner1,
-      getTXOptions(1)
+      txoptions
     );
 
     assert.instanceOf(proposal, Proposal);
@@ -265,9 +270,10 @@ describe('MultisigProposals', function () {
     await walletUtils.fundWalletBlock(wdb, mswallet, 1);
 
     const txoptions = getTXOptions(1);
+    const options = { memo: 'proposal', timestamp: now() };
 
     const proposal1 = await mswallet.createProposal(
-      'proposal-1',
+      { ...options, ...txoptions },
       cosigner1,
       txoptions
     );
@@ -291,9 +297,10 @@ describe('MultisigProposals', function () {
     await walletUtils.fundWalletBlock(wdb, mswallet, 2);
 
     const txoptions = getTXOptions(3);
+    const options = { memo: 'proposal', timestamp: now() };
 
     const {id} = await mswallet.createProposal(
-      'proposal',
+      { ...options, ...txoptions },
       cosigner1,
       txoptions
     );
@@ -315,10 +322,24 @@ describe('MultisigProposals', function () {
     await walletUtils.fundWalletBlock(wdb, mswallet, 1);
 
     const txoptions = getTXOptions(1);
+    const options = { memo: 'proposal', timestamp: now() };
 
-    const p1 = await mswallet.createProposal('proposal', cosigner1, txoptions);
-    await mswallet.createProposal('proposal1', cosigner1, txoptions);
-    await mswallet.createProposal('proposal2', cosigner1, txoptions);
+    const p1 = await mswallet.createProposal(
+      { ...options, ...txoptions },
+      cosigner1,
+      txoptions
+    );
+
+    await mswallet.createProposal(
+      { ...options, ...txoptions },
+      cosigner1,
+      txoptions
+    );
+    await mswallet.createProposal(
+      { ...options, ...txoptions },
+      cosigner1,
+      txoptions
+    );
 
     const pendingProposals = await mswallet.getPendingProposals();
 
@@ -331,7 +352,7 @@ describe('MultisigProposals', function () {
     assert.strictEqual(pendingProposals2.length, 2);
 
     const proposal2 = await mswallet.createProposal(
-      'proposal3',
+      { ...options, ...txoptions },
       cosigner1,
       txoptions
     );
@@ -343,8 +364,14 @@ describe('MultisigProposals', function () {
     await walletUtils.fundWalletBlock(wdb, mswallet, 1);
 
     const txoptions = getTXOptions(1);
+    const options = { memo: 'proposal', timestamp: now() };
 
-    const p1 = await mswallet.createProposal('proposal', cosigner1, txoptions);
+    const p1 = await mswallet.createProposal(
+      { ...options, ...txoptions },
+      cosigner1,
+      txoptions
+    );
+
     await mswallet.rejectProposal(p1.id, cosigner1);
 
     let err;
@@ -368,8 +395,10 @@ describe('MultisigProposals', function () {
     // create proposal
     const proposalName = 'proposal1';
     const txoptions = getTXOptions(2);
+    const options = { memo: proposalName, timestamp: now() };
+
     const proposal = await mswallet.createProposal(
-      proposalName,
+      { ...options, ...txoptions },
       cosigner1,
       txoptions
     );
@@ -450,8 +479,10 @@ describe('MultisigProposals', function () {
 
     const proposalName = 'proposal1';
     const txoptions = getTXOptions(2);
+    const options = { memo: proposalName, timestamp: now() };
+
     const proposal = await mswallet2.createProposal(
-      proposalName,
+      { ...options, ...txoptions },
       cosigner1,
       txoptions
     );
@@ -499,14 +530,19 @@ describe('MultisigProposals', function () {
     await walletUtils.fundWalletBlock(wdb, mswallet, 1);
 
     const txoptions = getTXOptions(1);
+    const options = { memo: 'proposal', timestamp: now() };
 
     const proposal = await mswallet.createProposal(
-      'proposal',
+      { ...options, ...txoptions },
       cosigner1,
       txoptions
     );
 
-    await mswallet.createProposal('proposal1', cosigner1, txoptions);
+    await mswallet.createProposal(
+      { ...options, ...txoptions },
+      cosigner1,
+      txoptions
+    );
 
     const pendingProposals = await mswallet.getPendingProposals();
     assert.strictEqual(pendingProposals.length, 2);
@@ -539,8 +575,13 @@ describe('MultisigProposals', function () {
     await walletUtils.fundWalletBlock(wdb, mswallet, 1);
 
     const txoptions = getTXOptions(1);
+    const options = { memo: 'proposal', timestamp: now() };
 
-    const p1 = await mswallet.createProposal('proposal', cosigner1, txoptions);
+    const p1 = await mswallet.createProposal(
+      { ...options, ...txoptions },
+      cosigner1,
+      txoptions
+    );
 
     const pending = await mswallet.getPendingProposals();
     assert.strictEqual(pending.length, 1);
@@ -563,10 +604,13 @@ describe('MultisigProposals', function () {
   it('should recover coins on rejection', async () => {
     await walletUtils.fundWalletBlock(wdb, mswallet, 1);
 
+    const txoptions = getTXOptions(1);
+    const options = { memo: 'proposal', timestamp: now() };
+
     const proposal = await mswallet.createProposal(
-      'proposal',
+      { ...options, ...txoptions },
       cosigner1,
-      getTXOptions(1)
+      txoptions
     );
 
     assert.instanceOf(proposal, Proposal);
@@ -583,6 +627,7 @@ describe('MultisigProposals', function () {
 
   it('should reject proposal on mempool double spend', async () => {
     const txoptions = getTXOptions(1);
+    const options = { memo: 'proposal', timestamp: now() };
 
     const amount = Amount.fromBTC(1).toValue();
     const account = await mswallet.getAccount();
@@ -591,7 +636,7 @@ describe('MultisigProposals', function () {
     await wdb.addTX(mtx.toTX());
 
     const proposal = await mswallet.createProposal(
-      'proposal-1',
+      { ...options, ...txoptions },
       cosigner1,
       txoptions
     );
@@ -608,10 +653,12 @@ describe('MultisigProposals', function () {
 
   it('should reject proposal on coin spend', async () => {
     const txoptions = getTXOptions(1);
+    const options = { memo: 'proposal', timestamp: now() };
+
     await walletUtils.fundWalletBlock(wdb, mswallet, 1);
 
     const proposal = await mswallet.createProposal(
-      'proposal-1',
+      { ...options, ...txoptions },
       cosigner1,
       txoptions
     );
@@ -657,10 +704,11 @@ describe('MultisigProposals', function () {
 
   it('should reject proposal on reorg double spend', async () => {
     const txoptions = getTXOptions(1);
+    const options = { memo: 'proposal', timestamp: now() };
     const mtx = await walletUtils.fundWalletBlock(wdb, mswallet, 1);
 
     const proposal1 = await mswallet.createProposal(
-      'proposal-1',
+      { ...options, ...txoptions },
       cosigner1,
       txoptions
     );
@@ -730,4 +778,8 @@ function getTXOptions(btc) {
 
 function generateAddress() {
   return KeyRing.generate().getAddress();
+}
+
+function now() {
+  return Math.floor(Date.now() / 1000);
 }

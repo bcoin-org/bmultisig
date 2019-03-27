@@ -83,8 +83,7 @@ Used for authentication or verification:
 ## Proposals
 ### Creating proposal
 Proposal data:
-  - `proposal` - This is proposal details.
-  - `rbytes` - random bytes (20 bytes)
+  - `proposal` - This is proposal details (including client timestamp).
   - `signature` - signature of the proposal data signed using authPubKey.
     JSON.stringified in this version.
 
@@ -143,7 +142,8 @@ signature was created by one of the cosigners.
   - Verify `authPubKey` of the cosigner, if you have not cached it.
     (`authPubKey` verification above)
   - Get proposal information
-    - `proposal` (options when requesting proposal).
+    - `proposal` (options when requesting proposal, including client timestamp).
+  - Verify timestamp is reasonable.
   - get `signature` from the action (rejection or creation)
   - hash(JSON.stringify(`proposal`))
   - verify(`hash`, `signature`, `cosigner.authPubKey`)
@@ -173,13 +173,9 @@ Endpoint `create proposal`:
     be mislead into signing new MTX that they did not create.  
     Even though MTX may be spending different inputs, it will still go
     to same outputs.
-    We have introduced `rbytes` that can be used to track that this value
-    does not repeat, but that will require all clients tracking rbytes for all
-    past proposals.
-  - We could use `rbytes` as `pid` instead of incremented id, in order to
-    uniquely idenfity the proposal, but service provider can just remove old
-    proposal (it can be finalized) and introduce new one, so it still requires
-    users to track `seen rbytes`.
+    We have `timestamp` to limit ways how this can be exploited by server,
+    author of the proposal will submit `timestamp` and clients will
+    need to verify if `timestamp` is reasonable (depends on application context)
 
 Endpoint `reject proposal`:
   - This will sign `pid` with the proposal options, so unless proposal

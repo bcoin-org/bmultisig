@@ -17,7 +17,8 @@ const TEST_OPTIONS = {
   memo: 'test1',
   m: 2,
   n: 3,
-  author: 0
+  author: 0,
+  timestamp: Math.floor(Date.now() / 1000)
 };
 
 const TEST_KEY = hd.generate().toPublic();

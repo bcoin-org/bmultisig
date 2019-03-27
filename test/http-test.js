@@ -497,7 +497,14 @@ describe('HTTP', function () {
 
     const proposal = await testWalletClient2.createProposal(
       WALLET_OPTIONS.id,
-      { memo: 'proposal1', ...txoptions}
+      {
+        proposal: {
+          memo: 'proposal1',
+          timestamp: now(),
+          ...txoptions
+        },
+        signature: Buffer.alloc(32).toString('hex')
+      }
     );
 
     const eventResults = await createEvents;
@@ -653,7 +660,14 @@ describe('HTTP', function () {
     const txoptions = getTXOptions(1);
     const proposal = await testWalletClient1.createProposal(
       WALLET_OPTIONS.id,
-      { memo: 'proposal2', ...txoptions }
+      {
+        proposal: {
+          memo: 'proposal2',
+          timestamp: now(),
+          ...txoptions
+        },
+        signature: Buffer.alloc(32).toString('hex')
+      }
     );
 
     pid2 = proposal.id;
@@ -944,4 +958,8 @@ function waitForBind(client, event, timeout = 1000) {
 
     client.bind(event, cb);
   });
+}
+
+function now() {
+  return Math.floor(Date.now() / 1000);
 }
