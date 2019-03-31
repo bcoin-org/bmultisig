@@ -84,12 +84,13 @@ Used for authentication or verification:
 ### Creating proposal
 Proposal data:
   - `proposal` - This is proposal details (including client timestamp).
-  - `signature` - signature of the proposal data signed using authPubKey.
+  - `signature` - signature of the proposal data signed using authPrivKey.
     JSON.stringified in this version.
 
 NOTE: there is no need to have Canonical JSON encoding, because original
 proposal object will be stringified and stored as it is. It can be fetched
-by other cosigners for verification.
+by other cosigners for verification.  
+Signing will happen on HTTP request ready proposal object.
 
 #### Getting proposal
 Get proposal will include original `proposal` options, that were used

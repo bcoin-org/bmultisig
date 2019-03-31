@@ -35,6 +35,7 @@ class CosignerContext {
 
     this._joinSignature = null;
     this._xpubProof = null;
+    this._cosigner = null;
 
     this.fromOptions(options);
   }
@@ -156,19 +157,37 @@ class CosignerContext {
   }
 
   /**
+   * @param {Object} options
+   * @returns {Buffer} signature
+   */
+
+  getProposalSignature(options) {
+    const json = JSON.stringify(options);
+    const hash = sigUtils.getProposalHash(json);
+
+    const signature = sigUtils.signHash(hash, this.authPrivKey);
+
+    return signature;
+  }
+
+  /**
    * @returns {Cosigner}
    */
 
   toCosigner() {
-    return Cosigner.fromOptions({
-      name: this.name,
-      key: this.accountKey,
-      authPubKey: this.authPubKey,
-      joinSignature: this.joinSignature,
-      fingerPrint: this.fingerPrint,
-      token: this.token,
-      purpose: this.purpose
-    });
+    if (!this._cosigner) {
+      this._cosigner = Cosigner.fromOptions({
+        name: this.name,
+        key: this.accountKey,
+        authPubKey: this.authPubKey,
+        joinSignature: this.joinSignature,
+        fingerPrint: this.fingerPrint,
+        token: this.token,
+        purpose: this.purpose
+      });
+    }
+
+    return this._cosigner;
   }
 
   toHTTPOptions() {
