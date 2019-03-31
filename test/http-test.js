@@ -7,7 +7,7 @@ const assert = require('./util/assert');
 const walletUtils = require('./util/wallet');
 const testUtils = require('./util/utils');
 
-const bcoin = require('bcoin');
+const bcoin = require('bcoin/lib/bcoin-browser');
 const {Network, FullNode} = bcoin;
 const {MTX, TX, Amount, KeyRing} = bcoin;
 const {wallet} = bcoin;
@@ -487,23 +487,26 @@ describe('HTTP', function () {
   });
 
   it('should create proposal', async () => {
-    const txoptions = getTXOptions(1);
-
     const createEvents = Promise.all([
       waitForBind(adminClient, 'proposal created'),
       waitForBind(walletAdminClient, 'proposal created'),
       waitForBind(testWalletClient2, 'proposal created')
     ]);
 
+    const txoptions = getTXOptions(1);
+    const proposalOptions = {
+      memo: 'proposal1',
+      timestamp: now(),
+      txoptions
+    };
+
+    const signature = cosignerCtx2.getProposalSignature(proposalOptions);
+
     const proposal = await testWalletClient2.createProposal(
       WALLET_OPTIONS.id,
       {
-        proposal: {
-          memo: 'proposal1',
-          timestamp: now(),
-          ...txoptions
-        },
-        signature: Buffer.alloc(32).toString('hex')
+        proposal: proposalOptions,
+        signature: signature.toString('hex')
       }
     );
 
@@ -658,15 +661,19 @@ describe('HTTP', function () {
 
   it('should create another proposal using same coins', async () => {
     const txoptions = getTXOptions(1);
+    const proposalOptions = {
+      memo: 'proposal2',
+      timestamp: now(),
+      txoptions
+    };
+
+    const signature = cosignerCtx1.getProposalSignature(proposalOptions);
+
     const proposal = await testWalletClient1.createProposal(
       WALLET_OPTIONS.id,
       {
-        proposal: {
-          memo: 'proposal2',
-          timestamp: now(),
-          ...txoptions
-        },
-        signature: Buffer.alloc(32).toString('hex')
+        proposal: proposalOptions,
+        signature: signature.toString('hex')
       }
     );
 

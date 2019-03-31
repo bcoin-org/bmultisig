@@ -12,13 +12,19 @@ const {SignaturesRecord} = Proposal;
 const {hd} = require('bcoin');
 const secp256k1 = require('bcrypto/lib/secp256k1');
 
-const TEST_OPTIONS = {
+const PROPOSAL_OPTIONS = {
   id: 1,
   memo: 'test1',
   m: 2,
   n: 3,
   author: 0,
   timestamp: Math.floor(Date.now() / 1000)
+};
+
+const TEST_OPTIONS = {
+  ...PROPOSAL_OPTIONS,
+  options: PROPOSAL_OPTIONS,
+  signature: Buffer.alloc(65, 0)
 };
 
 const TEST_KEY = hd.generate().toPublic();
@@ -44,8 +50,11 @@ describe('Proposal', function () {
   it('should create proposal from option', () => {
     const proposal = Proposal.fromOptions(TEST_OPTIONS);
 
-    for (const key of Object.keys(TEST_OPTIONS))
-      assert.strictEqual(proposal[key], TEST_OPTIONS[key]);
+    for (const key of Object.keys(PROPOSAL_OPTIONS))
+      assert.strictEqual(proposal[key], PROPOSAL_OPTIONS[key]);
+
+    assert.strictEqual(proposal.options, JSON.stringify(PROPOSAL_OPTIONS));
+    assert.bufferEqual(proposal.signature, TEST_OPTIONS.signature);
   });
 
   it('should serialize to JSON and recover', () => {
