@@ -81,11 +81,17 @@ Used for authentication or verification:
     - using joinPrivKey.
 
 ## Proposals
+### Signatures by payload type
+We don't want signatures to get reused, so we prepend one byte for payload type:
+  - `0x00` - create proposal
+  - `0x01` - reject proposal
+So data to sign will be computed as `type || stringified json of proposal options`.
+
 ### Creating proposal
 Proposal data:
   - `proposal` - This is proposal details (including client timestamp).
   - `signature` - signature of the proposal data signed using authPrivKey.
-    JSON.stringified in this version.
+    `0x00 || JSON.stringified(options)` in this version.
 
 NOTE: there is no need to have Canonical JSON encoding, because original
 proposal object will be stringified and stored as it is. It can be fetched
@@ -106,7 +112,7 @@ for the transaction.
 
 ### Rejecting proposal
   - `signature` - When rejecting proposal, cosigner has to provide signature
-  of the `proposal` object, that is original proposal details
+  of the `0x01 || JSON.stringified(options)`, that is original proposal details
   signed using `authPubKey`.
 
 ## Verifying data
