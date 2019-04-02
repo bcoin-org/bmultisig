@@ -3,7 +3,7 @@
 
 'use strict';
 
-const assert = require('./util/assert');
+const assert = require('bsert');
 const MultisigDB = require('../lib/multisigdb');
 const layout = require('../lib/layout').msdb;
 const WalletNullClient = require('../lib/walletnullclient');

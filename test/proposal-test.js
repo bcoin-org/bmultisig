@@ -3,7 +3,7 @@
 
 'use strict';
 
-const assert = require('./util/assert');
+const assert = require('bsert');
 const Proposal = require('../lib/primitives/proposal');
 const Cosigner = require('../lib/primitives/cosigner');
 const {ApprovalsMapRecord} = Proposal;

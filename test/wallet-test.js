@@ -3,7 +3,7 @@
 
 'use strict';
 
-const assert = require('./util/assert');
+const assert = require('bsert');
 const Logger = require('blgr');
 const {wallet, hd, Network} = require('bcoin');
 const {WalletDB, MasterKey} = wallet;

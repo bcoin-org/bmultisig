@@ -3,11 +3,11 @@
 
 'use strict';
 
-const assert = require('./util/assert');
+const assert = require('bsert');
 const walletUtils = require('./util/wallet');
 const testUtils = require('./util/utils');
 
-const bcoin = require('bcoin/lib/bcoin-browser');
+const bcoin = require('bcoin');
 const {Network, FullNode} = bcoin;
 const {MTX, TX, Amount, KeyRing} = bcoin;
 const {wallet} = bcoin;

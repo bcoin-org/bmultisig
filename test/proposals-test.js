@@ -3,7 +3,7 @@
 
 'use strict';
 
-const assert = require('./util/assert');
+const assert = require('bsert');
 const walletUtils = require('./util/wallet');
 const testUtils = require('./util/utils');
 const CosignerCtx = require('./util/cosigner-context');

@@ -3,7 +3,7 @@
 
 'use strict';
 
-const assert = require('./util/assert');
+const assert = require('bsert');
 const MultisigMTX = require('../lib/primitives/mtx');
 const {KeyRing, Script, Coin} = require('bcoin');
 
