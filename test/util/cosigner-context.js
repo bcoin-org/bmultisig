@@ -157,13 +157,18 @@ class CosignerContext {
   }
 
   /**
-   * @param {Object} options
+   * @param {ProposalPayloadType} type
+   * @param {Object|String} options
    * @returns {Buffer} signature
    */
 
-  getProposalSignature(options) {
-    const json = JSON.stringify(options);
-    const hash = sigUtils.getProposalHash(json);
+  signProposal(type, options) {
+    if (typeof options === 'object')
+      options = JSON.stringify(options);
+
+    assert((type & 0xff) === type);
+    assert(typeof options === 'string');
+    const hash = sigUtils.getProposalHash(type, options);
 
     const signature = sigUtils.signHash(hash, this.authPrivKey);
 
