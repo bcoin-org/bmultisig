@@ -208,8 +208,8 @@ describe('MultisigWallet', function () {
     const mswallet = await msdb.getWallet('non-existing');
     const nonMultisigWallet = await msdb.getWallet('primary');
 
-    assert.typeOf(mswallet, 'null');
-    assert.typeOf(nonMultisigWallet, 'null');
+    assert.ok(mswallet === null);
+    assert.ok(nonMultisigWallet === null);
   });
 
   it('should list multisig wallets', async () => {
@@ -268,7 +268,7 @@ describe('MultisigWallet', function () {
     const wallets = await msdb.getWallets();
 
     assert.strictEqual(removed, true);
-    assert.typeOf(wallet, 'null');
+    assert.ok(wallet === null);
     assert.strictEqual(wallets.length, 0);
   });
 
@@ -314,7 +314,7 @@ describe('MultisigWallet', function () {
     );
 
     assert.strictEqual(join1.cosigners[1].id, 1);
-    assert.notTypeOf(join1.cosigners[1].token, 'null');
+    assert.ok(Buffer.isBuffer(join1.cosigners[1].token));
 
     const cosigner3 = cosignerCtx3.toCosigner();
 
@@ -328,7 +328,7 @@ describe('MultisigWallet', function () {
       'Wallet was not initialized'
     );
     assert.strictEqual(join2.cosigners[2].id, 2);
-    assert.notTypeOf(join2.cosigners[2].token, 'null');
+    assert.ok(Buffer.isBuffer(join2.cosigners[2].token));
     assert.strictEqual(join2.cosigners[2].name, cosigner3.name);
 
     const account = await mswallet.wallet.getAccount(0);
