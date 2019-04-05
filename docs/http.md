@@ -2,7 +2,6 @@ Multisig HTTP
 =============
 
 Multisig HTTP Server adds some API methods and disables several existing ones.
-Also authentication is slightly different from bcoin wallet HTTP.
 
 #### Authentication Configs
 It's recommended, that you setup `API_KEY` for HTTP in general and turn on `walletAuth`.
@@ -13,14 +12,21 @@ You will still need to set `API_KEY` for http server, which is same as Node HTTP
 bcoin.
 
 ### Authentication
-Multisig wallet uses cosigner `token`s for authentication cosigner of the wallet. But there are
-some routes that do not require authentication or only admin `token` can query.
+Multisig wallet uses cosigner `token`s to authenticate cosigners, that are configured by cosigners
+when joining. (*NOTE: Admin token wont be able to access cosigner APIs. So don't use admin token
+as cosigner token.*)  
+There are some routes that do not require authentication or only admin `token` can query.
 
-*PUT /multisig/:id* - used for wallet creation does not need any authentication (you should use
-`API_KY` to control access to the API itself).  
-*POST /multisig/join* - will check `joinKey`. (See below).
+Some endpoints need signatures and public keys, you can check recent updates: [signing](signing.md)
+This document will also include some steps to reproduce signatures.
 
-*GET /multisig* and *DEL /multisig/:id* can be requested only with admin `token`.
+Some examples:
+  * PUT /multisig/:id* - used for wallet creation does not need any authentication (you should use
+  `API_KEY` to control access to the API itself).
+  * GET /multisig/:id/proposal/ - can be requested using cosigner token.
+  * GET /multisig* and *DEL /multisig/:id* can be requested only with admin `token`.
+  * POST /multisig/join* - will check `joinSignature`.
+  * POST /multisig/:id/proposal - needs `signature` (using `authPubKey`).
 
 
 ### Additional API Endpoints
