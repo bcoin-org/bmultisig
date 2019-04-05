@@ -21,7 +21,8 @@ const {CREATE, REJECT} = Proposal.payloadType;
 const TEST_WALLET_ID = 'test1';
 const TEST_WALLET_ID2 = 'test2';
 
-describe('MultisigProposals', function () {
+for (const WITNESS of [true, false])
+describe(`MultisigProposals ${WITNESS ? 'witness' : 'legacy'}`, function () {
   // 2-of-2 will be used for tests
   let wdb, msdb;
 
@@ -86,7 +87,7 @@ describe('MultisigProposals', function () {
     cosigner2 = cosignerCtx2.toCosigner();
     cosigner3 = cosignerCtx3.toCosigner();
 
-    mswallet = await mkWallet(msdb, TEST_WALLET_ID, 2, 2, [
+    mswallet = await mkWallet(msdb, TEST_WALLET_ID, 2, 2, WITNESS, [
       cosigner1,
       cosigner2
     ]);
@@ -94,7 +95,7 @@ describe('MultisigProposals', function () {
     wallet = mswallet.wallet;
     pdb = mswallet.pdb;
 
-    mswallet2 = await mkWallet(msdb, TEST_WALLET_ID2, 2, 3, [
+    mswallet2 = await mkWallet(msdb, TEST_WALLET_ID2, 2, 3, WITNESS, [
       cosigner1,
       cosigner2,
       cosigner3
@@ -326,7 +327,10 @@ describe('MultisigProposals', function () {
     const proposal = await mkProposal(mswallet, cosignerCtx1, 2, 'proposal1');
     const mtx = await mswallet.getProposalMTX(proposal.id);
     const paths = await mswallet.getInputPaths(mtx);
-    const rings = testUtils.getMTXRings(mtx, paths, priv1, [xpub1, xpub2], 2);
+    const rings = testUtils.getMTXRings(
+      mtx, paths, priv1, [xpub1, xpub2], 2, WITNESS
+    );
+
     const sigs = testUtils.getMTXSignatures(mtx, rings);
 
     assert.strictEqual(sigs.length, 2, 'Wrong number of signatures.');
@@ -377,7 +381,9 @@ describe('MultisigProposals', function () {
     assert.strictEqual(approved.approvals.has(cosigner1.id), true);
 
     // approve by second cosigner
-    const rings2 = testUtils.getMTXRings(mtx, paths, priv2, [xpub1, xpub2], 2);
+    const rings2 = testUtils.getMTXRings(
+      mtx, paths, priv2, [xpub1, xpub2], 2, WITNESS
+    );
     const sigs2 = testUtils.getMTXSignatures(mtx, rings2);
 
     const approved2 = await mswallet.approveProposal(
@@ -406,7 +412,9 @@ describe('MultisigProposals', function () {
     const xpubs = [xpub1, xpub2, xpub3];
 
     { // cosigner2
-      const rings = testUtils.getMTXRings(mtx, paths, priv2, xpubs, 2);
+      const rings = testUtils.getMTXRings(
+        mtx, paths, priv2, xpubs, 2, WITNESS
+      );
       const sigs = testUtils.getMTXSignatures(mtx, rings);
 
       assert.strictEqual(sigs.length, 2);
@@ -422,7 +430,9 @@ describe('MultisigProposals', function () {
     }
 
     { // cosigner3
-      const rings = testUtils.getMTXRings(mtx, paths, priv3, xpubs, 2);
+      const rings = testUtils.getMTXRings(
+        mtx, paths, priv3, xpubs, 2, WITNESS
+      );
       const sigs = testUtils.getMTXSignatures(mtx, rings);
 
       assert.strictEqual(sigs.length, 2);
@@ -452,7 +462,9 @@ describe('MultisigProposals', function () {
     const mtx = await mswallet.getProposalMTX(proposal.id);
     const paths = await mswallet.getInputPaths(mtx);
 
-    const rings = testUtils.getMTXRings(mtx, paths, priv1, [xpub1, xpub2], 2);
+    const rings = testUtils.getMTXRings(
+      mtx, paths, priv1, [xpub1, xpub2], 2, WITNESS
+    );
     const signatures = testUtils.getMTXSignatures(mtx, rings);
 
     await mswallet.approveProposal(
@@ -485,7 +497,9 @@ describe('MultisigProposals', function () {
       const mtx = await mswallet.getProposalMTX(p1.id);
       const paths = await mswallet.getInputPaths(mtx);
 
-      const rings = testUtils.getMTXRings(mtx, paths, priv, [xpub1, xpub2], 2);
+      const rings = testUtils.getMTXRings(
+        mtx, paths, priv, [xpub1, xpub2], 2, WITNESS
+      );
       const signatures = testUtils.getMTXSignatures(mtx, rings);
 
       // approve proposal
@@ -566,6 +580,8 @@ describe('MultisigProposals', function () {
           [p1.publicKey, p2.publicKey]
         );
 
+        ring.witness = WITNESS;
+
         const signed = mtx.sign(ring);
 
         assert.strictEqual(signed, 1);
@@ -615,12 +631,13 @@ describe('MultisigProposals', function () {
  * @returns {MultisigWallet}
  */
 
-async function mkWallet(msdb, walletName, m, n, cosigners = []) {
+async function mkWallet(msdb, walletName, m, n, witness = true, cosigners = []) {
   const author = cosigners.shift();
   const mswallet = await msdb.create({
     id: walletName,
     m: m,
-    n: n
+    n: n,
+    witness: witness
   }, author);
 
   assert(cosigners.length === n - 1);

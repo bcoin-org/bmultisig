@@ -24,51 +24,46 @@ const ADMIN_TOKEN = Buffer.alloc(32, 250).toString('hex');
 
 const network = Network.get(NETWORK_NAME);
 
-/*
- * Setup nodes
- */
+for (const WITNESS of [true, false])
+describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
+  const options = {
+    network: NETWORK_NAME,
+    apiKey: API_KEY,
+    memory: true,
+    workers: true
+  };
 
-const options = {
-  network: NETWORK_NAME,
-  apiKey: API_KEY,
-  memory: true,
-  workers: true
-};
+  const WALLET_OPTIONS = {
+    m: 2,
+    n: 2,
+    id: 'test',
+    witness: WITNESS
+  };
 
-const fullNode = new FullNode({
-  network: options.network,
-  apiKey: options.apiKey,
-  memory: options.memory,
-  workers: options.workers
-});
+  const fullNode = new FullNode({
+    network: options.network,
+    apiKey: options.apiKey,
+    memory: options.memory,
+    workers: options.workers
+  });
 
-const walletNode = new wallet.Node({
-  network: options.network,
-  memory: options.memory,
-  workers: options.workers,
+  const walletNode = new wallet.Node({
+    network: options.network,
+    memory: options.memory,
+    workers: options.workers,
 
-  walletAuth: true,
-  apiKey: options.apiKey,
-  nodeApiKey: options.apiKey,
-  adminToken: ADMIN_TOKEN,
+    walletAuth: true,
+    apiKey: options.apiKey,
+    nodeApiKey: options.apiKey,
+    adminToken: ADMIN_TOKEN,
 
-  // logLevel: 'debug',
+    // logLevel: 'debug',
 
-  plugins: [require('../lib/plugin')]
-});
+    plugins: [require('../lib/plugin')]
+  });
 
-const wdb = walletNode.wdb;
+  const wdb = walletNode.wdb;
 
-// walletNode.on('error', err => console.error(err));
-
-const WALLET_OPTIONS = {
-  m: 2,
-  n: 2,
-  id: 'test',
-  witness: true
-};
-
-describe('HTTP', function () {
   before(async () => {
     await fullNode.open();
     await walletNode.open();
@@ -350,7 +345,8 @@ describe('HTTP', function () {
     assert.strictEqual(account.initialized, msWalletDetails.initialized);
     assert(account.receiveAddress);
     assert(account.changeAddress);
-    assert(account.nestedAddress);
+    if (WALLET_OPTIONS.witness)
+      assert(account.nestedAddress);
     assert.strictEqual(account.m, 2);
     assert.strictEqual(account.n, 2);
     assert.strictEqual(account.keys.length, 1);
@@ -622,7 +618,7 @@ describe('HTTP', function () {
     const proposal = await testWalletClient1.rejectProposal(
       WALLET_OPTIONS.id,
       pid1,
-      signature.toString('hex')
+      { signature: signature.toString('hex') }
     );
 
     const eventResults = await rejectEvents;
@@ -733,14 +729,9 @@ describe('HTTP', function () {
     const xpub1 = cosignerCtx1.accountKey;
     const xpub2 = cosignerCtx2.accountKey;
 
-    const rings = testUtils.getMTXRings(mtx, paths, priv1, [xpub1, xpub2], 2);
-
-    for (const ring of rings) {
-      if (!ring)
-        continue;
-
-      ring.witness = true;
-    }
+    const rings = testUtils.getMTXRings(
+      mtx, paths, priv1, [xpub1, xpub2], 2, WITNESS
+    );
 
     const signatures = testUtils.getMTXSignatures(mtx, rings);
 
@@ -795,14 +786,14 @@ describe('HTTP', function () {
     const priv2 = cosignerCtx2.accountPrivKey;
     const xpub1 = cosignerCtx1.accountKey;
     const xpub2 = cosignerCtx2.accountKey;
-    const rings = testUtils.getMTXRings(mtx, paths, priv2, [xpub1, xpub2], 2);
-
-    for (const ring of rings) {
-      if (!ring)
-        continue;
-
-      ring.witness = true;
-    }
+    const rings = testUtils.getMTXRings(
+      mtx,
+      paths,
+      priv2,
+      [xpub1, xpub2],
+      2,
+      WALLET_OPTIONS.witness
+    );
 
     const signatures = testUtils.getMTXSignatures(mtx, rings);
 
