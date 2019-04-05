@@ -15,7 +15,7 @@
     "lint": "eslint lib/ test/ || exit 0",
     "lint-ci": "eslint lib/ test/",
     "test": "bmocha --reporter spec test/*-test.js",
-    "test-ci": "istanbul cover node_modules/.bin/bmocha --report lcovonly -- --reporter spec test/*.js",
+    "test-ci": "nyc --reporter=lcov --reporter=text npm test",
     "docs": "jsdoc -c jsdoc.json",
     "clean": "rm -rf coverage && rm -rf docs"
   },
