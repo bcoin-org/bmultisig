@@ -307,7 +307,8 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
   });
 
   it('should get multisig wallet by id', async () => {
-    const multisigWallet = await testWalletClient1.getInfo('test');
+    const walletName = WALLET_OPTIONS.id;
+    const multisigWallet = await testWalletClient1.getInfo(walletName);
 
     assert(multisigWallet, 'Can not get multisig wallet.');
     assert.strictEqual(multisigWallet.wid, 1);
@@ -333,8 +334,8 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
     ]);
 
     // with details
-    const msWalletDetails = await testWalletClient1.getInfo('test', true);
-    const account = await testWalletClient1.getAccount('test', 'default');
+    const msWalletDetails = await testWalletClient1.getInfo(walletName, true);
+    const account = await testWalletClient1.getAccount(walletName, 'default');
 
     assert(msWalletDetails, 'Can not get multisig wallet');
     assert.strictEqual(msWalletDetails.wid, multisigWallet.wid);
@@ -372,6 +373,43 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
     assert(Array.isArray(multisigWallets));
     assert.strictEqual(multisigWallets.length, 1);
     assert.deepEqual(multisigWallets, ['test']);
+  });
+
+  it('should change token', async () => {
+    const currentToken = testWalletClient1.token;
+    const newToken = Buffer.alloc(32, 3).toString('hex');
+
+    {
+      const cosigner = await testWalletClient1.setToken(WALLET_OPTIONS.id, {
+        newToken: newToken
+      });
+
+      assert.strictEqual(cosigner.name, cosignerCtx1.name);
+      assert.strictEqual(cosigner.token, newToken.toString('hex'));
+    }
+
+    let err;
+    try {
+      await testWalletClient1.setToken(WALLET_OPTIONS.id, {
+        newToken: Buffer.alloc(32, 99).toString('hex')
+      });
+    } catch (e) {
+      err = e;
+    }
+
+    assert(err);
+    assert.strictEqual(err.message, 'Authentication error.');
+
+    {
+      testWalletClient1.token = newToken;
+      const cosigner = await testWalletClient1.setToken(WALLET_OPTIONS.id, {
+        newToken: currentToken
+      });
+
+      assert.strictEqual(cosigner.name, cosignerCtx1.name);
+      assert.strictEqual(cosigner.token, currentToken.toString('hex'));
+      testWalletClient1.token = currentToken;
+    }
   });
 
   it('should rescan db', async () => {
@@ -464,7 +502,7 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
   });
 
   it('should fund and create transaction', async () => {
-    const account = await testWalletClient1.getAccount('test');
+    const account = await testWalletClient1.getAccount(WALLET_OPTIONS.id);
     const addr = account.receiveAddress;
 
     await walletUtils.fundAddressBlock(wdb, addr, 1);
