@@ -87,6 +87,7 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
     walletName: WALLET_OPTIONS.id,
     name: 'cosigner1',
     token: Buffer.alloc(32, 1),
+    data: Buffer.alloc(10, 99),
     network
   });
 

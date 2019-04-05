@@ -161,9 +161,11 @@ describe('Cosigner', function () {
   it('should verify proof signature', () => {
     const cosigner = new Cosigner(TEST_OPTIONS);
     const proofKey = accountPrivateKey.derive(sigUtils.PROOF_INDEX).derive(0);
+    const walletName = 'test';
     const data = bufio.write();
 
-    data.writeString(TEST_OPTIONS.name);
+    data.writeString(walletName, 'utf8');
+    data.writeString(TEST_OPTIONS.name, 'utf8');
     data.writeBytes(TEST_OPTIONS.authPubKey);
     data.writeBytes(TEST_OPTIONS.key.toRaw());
 
@@ -171,18 +173,19 @@ describe('Cosigner', function () {
 
     const signature = sigUtils.signMessage(raw, proofKey.privateKey);
 
-    assert.ok(cosigner.verifyProof(signature));
+    assert.ok(cosigner.verifyProof(signature, walletName));
   });
 
   it('should verify proof signature (client)', () => {
     const cosigner = new Cosigner(TEST_OPTIONS);
+    const walletName = 'test';
     const proofKey = accountPrivateKey.derive(sigUtils.PROOF_INDEX).derive(0);
-    const hash = cosigner.getProofHash(NETWORK);
+    const hash = cosigner.getJoinHash(walletName, NETWORK);
     const signature = sigUtils.signHash(hash, proofKey.privateKey);
 
     const clientCosigner = Cosigner.fromJSON(cosigner.toJSON());
 
-    assert.ok(clientCosigner.verifyProof(signature));
+    assert.ok(clientCosigner.verifyProof(signature, walletName));
   });
 
   it('should verify join signature', () => {

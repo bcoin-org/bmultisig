@@ -67,16 +67,15 @@ General cosigner information:
     in conjuction to other cosigners XPUBs.
   - `accountKeyProof` - Proving that you own accountKey, is for validating
     xpubs, so you don't accidentally upload incorrect accountKey.
-    - Data to sign: `cosignerName || authPubKey || accountKey`.
+    - Data to sign: `walletName || cosignerName || authPubKey || accountKey`.
     - using private key at: `accountKey/MAX_NONHARDENED_INDEX/0`.
 
 Used for authentication or verification:
   - `token` - token for authenticating HTTP requests(General authentication).
   - `authPubKey` - PubKey for authenticating proposal requests and actions.
-    This can be derived from XPUB on client side, but server accepts any
-    public key.
+    This can be derived from XPUB on client side, but server accepts plain
+    compressed public key.
   - `joinSignature` - signature for proving that cosigner knows the secret.
-  Following data will be used for generating the `hash256`:
     - Data to sign: `walletName || cosignerName || authPubKey || accountKey`
     - using joinPrivKey.
 

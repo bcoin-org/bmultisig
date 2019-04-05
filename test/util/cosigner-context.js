@@ -19,7 +19,7 @@ class CosignerContext {
     this.network = Network.main;
     this.master = null;
     this.accountKey = null;
-    this.purpose = 0;
+    this.purpose = 44;
     this.fingerPrint = 0;
     this.name = 'cosigner';
     this.data = EMPTY;
@@ -138,7 +138,7 @@ class CosignerContext {
       assert(this.name !== '');
       assert(this.authPubKey != null);
 
-      const hash = sigUtils.getProofHash({
+      const hash = sigUtils.getJoinHash(this.walletName, {
         name: this.name,
         authPubKey: this.authPubKey,
         key: this.accountKey
