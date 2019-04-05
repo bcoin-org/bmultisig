@@ -9,11 +9,7 @@ exports.getMTXSignatures = getMTXSignatures;
 /**
  * Get MTX Signatures
  * @param {MTX} mtx
- * @param {Path[]} paths
- * @param {HDPrivateKey} xpriv
- * @param {HDPublicKey[]} xpubs
- * @param {Number} [m = 2]
- * @param {Boolean} [witness = false]
+ * @param {KeyRing[]} rings
  * @returns {Buffer[]} - signatures
  */
 
@@ -35,10 +31,11 @@ function getMTXSignatures(mtx, rings) {
  * @param {HDPrivateKey} xpriv
  * @param {HDPublicKey[]} xpubs
  * @param {Number} [m = 2]
+ * @param {Boolean} [witness = true]
  * @returns {Buffer[]} - signatures
  */
 
-function getMTXRings(mtx, paths, xpriv, xpubs, m = 2) {
+function getMTXRings(mtx, paths, xpriv, xpubs, m = 2, witness = true) {
   const msMTX = MultisigMTX.fromMTX(mtx);
   msMTX.view = mtx.view;
 
@@ -61,6 +58,7 @@ function getMTXRings(mtx, paths, xpriv, xpubs, m = 2) {
 
     const ring = KeyRing.fromPrivate(priv.privateKey);
 
+    ring.witness = witness;
     ring.script = Script.fromMultisig(
       m,
       pubkeys.length,

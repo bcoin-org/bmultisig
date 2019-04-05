@@ -86,7 +86,7 @@ describe('HTTP', function () {
   let testWalletClient2;
 
   let pid1, pid2; // proposal ids
-  let poptions1, poptions2;
+  let poptions1;
 
   const cosignerCtx1 = new CosignerCtx({
     walletName: WALLET_OPTIONS.id,
@@ -685,7 +685,6 @@ describe('HTTP', function () {
     assert.deepStrictEqual(proposal.options, proposalOptions);
 
     pid2 = proposal.id;
-    poptions2 = proposal.options;
 
     assert.strictEqual(proposal.memo, 'proposal2');
     assert.strictEqual(proposal.author, 0);
