@@ -615,7 +615,7 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
     const txinfo = await testWalletClient1.getProposalMTX(
       WALLET_OPTIONS.id,
       pid1,
-      { txs: true }
+      { txs: true, paths: true }
     );
 
     const {tx,txs} = txinfo;
@@ -846,7 +846,7 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
     const response = await testWalletClient2.approveProposal(
       WALLET_OPTIONS.id,
       pid2,
-      signatures
+      signatures.map(s => s.toString('hex'))
     );
 
     const proposal = response.proposal;
