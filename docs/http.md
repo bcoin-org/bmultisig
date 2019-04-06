@@ -521,8 +521,16 @@ HTTP Response:
 
 Get proposal by proposal id.
 
+Params:
+```json5
+{
+  // return transaction with proposal info.
+  tx: true
+}
+```
+
 ```javascript
-await client.getProposalInfo(id, pid);
+await client.getProposalInfo(id, pid, true);
 ```
 
 HTTP Response:
@@ -531,7 +539,7 @@ HTTP Response:
 {
   "id": 0,
   "memo": "proposal1",
-  "tx": null,
+  "tx": "01000000000101cc5a323d7b52f1ef798254ddacb448da68439255a4a08fb9f4339a2e118fe3810000000000ffffffff01b4d2f505000000001976a914668a3ad48214fa364735b58d391ed15ec584aa9988ac0400000047522103621bd4659c36110df64219bb504db00e02d5d6871565c3c7c6008d91d8d41d4d2103dc953d900278c468603eace16ef7c09b777c8d8e463c40d41ecc18d02c958d8b52ae00000000",
   "author": 1,
   "approvals": {},
   "rejections": {},

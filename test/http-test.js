@@ -590,10 +590,24 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
     });
   });
 
-  it('should get proposal', async () => {
+  it('should get proposal without tx', async () => {
     const proposal = await testWalletClient1.getProposalInfo(
       WALLET_OPTIONS.id,
-      pid1
+      pid1,
+      false
+    );
+
+    assert.strictEqual(proposal.memo, 'proposal1');
+    assert.strictEqual(proposal.m, WALLET_OPTIONS.m);
+    assert.strictEqual(proposal.n, WALLET_OPTIONS.n);
+    assert.strictEqual(proposal.statusCode, Proposal.status.PROGRESS);
+  });
+
+  it('should get proposal with tx', async () => {
+    const proposal = await testWalletClient1.getProposalInfo(
+      WALLET_OPTIONS.id,
+      pid1,
+      true
     );
 
     assert.strictEqual(proposal.memo, 'proposal1');

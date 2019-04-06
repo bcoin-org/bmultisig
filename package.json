@@ -31,11 +31,11 @@
   "dependencies": {
     "bclient": "^0.1.7",
     "bcoin": "~1.0.2",
-    "bcrypto": "^3.1.0",
+    "bcrypto": "^3.1.1",
     "bdb": "^1.1.7",
     "bevent": "^0.1.5",
     "blgr": "^0.1.7",
-    "bmultisig-client": "0.0.5",
+    "bmultisig-client": "0.0.6",
     "bmutex": "^0.1.6",
     "bsert": "0.0.10",
     "bstring": "^0.3.8",
