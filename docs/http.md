@@ -677,7 +677,12 @@ Params:
 ```
 
 ```javascript
-await client.approveProposal(id, name, signatures, broadcast);
+await client.approveProposal(id, name, {
+  signatures: [
+    "304502210099a223af72a0ca923ec926e256c6a19492047f004997f99dd1bc1bd5e90260970220787e27b754e966d2e84b4ab484846b7f47edeed97e299e679b20ecb5af52010501"
+  ],
+  broadcast: true
+});
 ```
 
 HTTP Response:

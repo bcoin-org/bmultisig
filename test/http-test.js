@@ -798,7 +798,10 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
     const response = await testWalletClient1.approveProposal(
       WALLET_OPTIONS.id,
       pid2,
-      signatures
+      {
+        signatures,
+        broadcast: true
+      }
     );
 
     const proposal = response.proposal;
@@ -860,7 +863,10 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
     const response = await testWalletClient2.approveProposal(
       WALLET_OPTIONS.id,
       pid2,
-      signatures.map(s => s.toString('hex'))
+      {
+        signatures: signatures.map(s => s.toString('hex')),
+        broadcast: true
+      }
     );
 
     const proposal = response.proposal;

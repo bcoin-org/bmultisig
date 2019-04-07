@@ -35,7 +35,7 @@
     "bdb": "^1.1.7",
     "bevent": "^0.1.5",
     "blgr": "^0.1.7",
-    "bmultisig-client": "0.0.6",
+    "bmultisig-client": "0.0.7",
     "bmutex": "^0.1.6",
     "bsert": "0.0.10",
     "bstring": "^0.3.8",
