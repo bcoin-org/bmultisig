@@ -213,6 +213,7 @@ class CosignerContext {
   [custom]() {
     return '<CosignerContext\n'
       + `  name=${this.name}\n`
+      + `  walletName=${this.walletName}\n`
       + `  network=${this.network.type}\n`
       + `  master=${this.master.xprivkey(this.network)} \n`
       + `  fingerPrint=${this.fingerPrint}\n`
@@ -222,6 +223,12 @@ class CosignerContext {
       + `  joinPubKey=${this.joinPubKey.toString('hex')}\n`
       + `  cosigner=${util.inspect(this.cosigner)}`
       + '/>';
+  }
+
+  refresh() {
+    this._cosigner = null;
+    this._xpubProof = null;
+    this._joinSignature = null;
   }
 
   static fromOptions(options) {
