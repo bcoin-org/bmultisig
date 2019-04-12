@@ -421,7 +421,8 @@ who created the proposal. See [signing][signing]
 Data to sign:
   - description: payload type with JSON serialized proposal options.
   - example:
-    - Payload type is create: `0x00`
+    - Wallet name: `test` (hex: `74657374`)
+    - Payload type is create: `0` (hex: `00`)
     - `{"memo":"proposal1","timestamp":1554549769,"txoptions":{"subtractFee":true,"outputs":[{"address":"RSdnT2yZvda2j8ff3cYQzcZB4oqqEmFZDL","value":100000000}]}}`
     - encoded: `007b226d656d6f223a2270726f706f73616c31222c2274696d657374616d70223a313535343534393736392c2274786f7074696f6e73223a7b227375627472616374466565223a747275652c226f757470757473223a5b7b2261646472657373223a225253646e5432795a766461326a386666336359517a635a42346f7171456d465a444c222c2276616c7565223a3130303030303030307d5d7d7d`
     - signed using `signmessage` rpc method or similar api.
@@ -437,21 +438,21 @@ Params:
     // some description of the proposal. (up to 100 bytes)
     "memo": "proposal1",
     // client also sends timestamp for verification purposes. See signing doc.
-    "timestamp": 1554549769,
+    "timestamp": 1555065103,
     // you can check bcoin docs for details
     // what are accepted in `txoptions`.
     "txoptions": {
       "subtractFee": true,
       "outputs": [
         {
-          "address": "RSdnT2yZvda2j8ff3cYQzcZB4oqqEmFZDL",
+          "address": "RWgVixJfGyTCvhmJzEBD6tsBvv1btcTSXJ",
           "value": 100000000
         }
       ]
     }
   },
   // signature of data to sign using `authPrivKey`.
-  "signature": "20289481526a13e23ee02c011fef913033c51a77d616720d9d3ac717960b6949f0741bcac843c75fc2d42aa56cd8dcdf1077a39ff1bc6206c237598760f9af1af7"
+  "signature": "20b4740aeedee457c4df314d35dc4484bb6c2c1edb525158cabfa7619effd1a0c40154a72d060ad0fb256d2f83aac0ce78ba1d07472cfeda72e1d1fcba2d1001ff"
 }
 ```
 
@@ -467,26 +468,26 @@ HTTP Response:
 {
   "id": 0,
   "memo": "proposal1",
-  "tx": "0100000000010148e1052e99f368c2acc57cca3e5e06cf8e8e1f5febe6eb847bc02aa31ca32bf10000000000ffffffff01b4d2f505000000001976a914be5f262753d8909d8d2fa1bf3a6aa3a6431ca12e88ac0400000047522102287093498e16eb6ddbecf29331f6e7152c197d80ca4d40788679626eef2ba8e82102e10c7cd79338258ed96e4b415ae18fa9b7dd2119ec5d0ed277d61faae6068c8052ae00000000",
+  "tx": "010000000001011fde4f1c4fe35700e76c71f4fe2ae301cad918a7d2b6e204a49feb0810ae75770000000000ffffffff01b4d2f505000000001976a9147ce53b17719f95a49b290424f4d03279abdf91e388ac0400000047522103101caa304ee27baf13475d09116235756b22e3d98fd26aa356992244c3bf1c0b2103930cc331ebea62cb6e0094a4e0baeabfd7f9c6575bdffee6169905af0c7e55c352ae00000000",
   "author": 1,
   "approvals": {},
   "rejections": {},
-  "signature": "20289481526a13e23ee02c011fef913033c51a77d616720d9d3ac717960b6949f0741bcac843c75fc2d42aa56cd8dcdf1077a39ff1bc6206c237598760f9af1af7",
+  "signature": "208b715dcb5e3b45d1eb6a159af63047534d501e7deb7206ee0aa1b6bfc05db5d73f95587f81e1eb0d7eaee20b57ccbc024f3fac7257735ba2703c754b77feac58",
   "options": {
     "memo": "proposal1",
-    "timestamp": 1554549769,
+    "timestamp": 1555065102,
     "txoptions": {
       "subtractFee": true,
       "outputs": [
         {
-          "address": "RSdnT2yZvda2j8ff3cYQzcZB4oqqEmFZDL",
+          "address": "RLfaUYH5wWJYf9EUTFg25zFvmdzcGgSYH5",
           "value": 100000000
         }
       ]
     }
   },
-  "timestamp": 1554549769,
-  "createdAt": 1554549769,
+  "timestamp": 1555065102,
+  "createdAt": 1555065102,
   "rejectedAt": null,
   "approvedAt": null,
   "m": 2,
@@ -497,23 +498,24 @@ HTTP Response:
     "0": {
       "id": 0,
       "name": "cosigner1",
-      "authPubKey": "02b2756943aab72cc8fa9ca41e74483800a0b1da480750839f57d5eadfa405a4ea",
-      "joinSignature": "20df3a8db0b6a75d91a6d4445b545104185213aa959b15b86fa955ceba27bbb2d51c145061736fca8ab70f0f915508e828a91621e165872542b194915a1f03151a",
+      "authPubKey": "038f3a88a38d5a9e860f9546924053cd2f124d64527b65b98a0fd355918684d6d7",
+      "joinSignature": "1f486c115160c792075302aec618bbef4422ca80067a78432ca8957c90c2f742d119fd25d3a1a1d35a0100f8db1a828f7559d5afbb51b32f060fe5431d0e888937",
       "key": {
-        "xpubkey": "rpubKBAu47w4mmALMp7mDKSokXQjS6rABhwNtAzyFLzLm6SzsAGchN49Xfd51gfjLVoufPRsaGr3RJ7bed64aLDyttd4MAeiJig4re6gsognceWw"
+        "xpubkey": "rpubKBAc7hnnCrZgeBNDAMHJuBn6XJjoWCzx6wNPaPzfdegFb8h2w8R9rkqbDH3KBsGao8U4dGFPTfpF4s7nwEejMwVnyutzswXcCa3bQmSgU43G"
       }
     },
     "1": {
       "id": 1,
       "name": "cosigner2",
-      "authPubKey": "0387bdb2c3c6ac746610081839866cb754eda618c822631e82be28e26a540f0019",
-      "joinSignature": "20f7a11cefdeac21086cc1780846eeb2edae7eb9e8ea8dd67a144a9c0664e772cd61cafef331f66afbf25d5f9ac1c14445c83e400f1a027d873365298e76c4e929",
+      "authPubKey": "02a72d6dfc0ce12cdf77967a57a47258aee7ea0112cf683c9e650b547809c1cabb",
+      "joinSignature": "1f49d41867126627919e0a65e83f4e767566983446a5ab2ae8a918fcc363a9f2be4a4d0358853f59ea4950207a3a575ba029a939ff12679a93779b01d5d42f3c47",
       "key": {
-        "xpubkey": "rpubKBAx93SJF4FNKU96qb92Z8NLccHayENz6au4Ayds4gw4tnjTbWLVUgc15hVo3QZLnP3Q2fm2ZbyHJ9JKnq4w6UWi4hk6HYptF4tYaxqkrfLK"
+        "xpubkey": "rpubKBAdFmQCZiurtzXBV7PfjaPkaLYDJvVtM3wtbA4ny7Vn7Pb8DkUXHvDE81eJPE8fyBag8e2mwjbxEbhGhhLcfra3K44CFKmGhsfFQ9gLW7nY"
       }
     }
   }
 }
+
 ```
 
 #### GET /multisig/:id/proposal/:pid
@@ -663,23 +665,24 @@ HTTP Response:
 *Cosigner authentication.*
 
 Approve with signatures, this will verify signatures when submitted.
+NOTE: This endpoint does not return cosigner details.
 
 Params:
 ```json5
 {
   // signatures for inputs (can be null), maps to inputs.
-  signatures: [
-    "304502210099a223af72a0ca923ec926e256c6a19492047f004997f99dd1bc1bd5e90260970220787e27b754e966d2e84b4ab484846b7f47edeed97e299e679b20ecb5af52010501"
+  "signatures": [
+    "3044022060c8b70234e946814df040a021f34c6468b7d7cbc2aa070363b6ad86177a793802200b540cc622fed09625bc8ea1ba6e7fa70ca702afa3677e966f2138917b78395e01"
   ],
   // Do we want to broadcast transaction(if our approval was last once)
-  broadcast: false
+  "broadcast": true
 }
 ```
 
 ```javascript
 await client.approveProposal(id, name, {
   signatures: [
-    "304502210099a223af72a0ca923ec926e256c6a19492047f004997f99dd1bc1bd5e90260970220787e27b754e966d2e84b4ab484846b7f47edeed97e299e679b20ecb5af52010501"
+    "3044022060c8b70234e946814df040a021f34c6468b7d7cbc2aa070363b6ad86177a793802200b540cc622fed09625bc8ea1ba6e7fa70ca702afa3677e966f2138917b78395e01"
   ],
   broadcast: true
 });
@@ -687,65 +690,51 @@ await client.approveProposal(id, name, {
 
 HTTP Response:
 ```json5
+
 {
-  "broadcasted": false,
+  "broadcasted": true,
   // if you wanted to broadcast and it failed, this will contain error message.
   "broadcastError": null,
   "proposal": {
     "id": 1,
     "memo": "proposal2",
-    "tx": null,
+    "tx": "01000000000101bb9a9ba497d7b092c807b29ee1b4666e2a95a7d549c7ca258c4e916bd7d4e11c0000000000ffffffff01b4d2f505000000001976a914dce85ae1e11c2044aec3cf3fcfdc54fe796a2ad588ac0400483045022100e23caa92fdca32e9c50a186c651e7f54c150f329693a260e18d720148de7d687022041d740178ca29089450cc0b36b5503e28e6825dd1b4f92ba7304cf8d575a4bcb01473044022060c8b70234e946814df040a021f34c6468b7d7cbc2aa070363b6ad86177a793802200b540cc622fed09625bc8ea1ba6e7fa70ca702afa3677e966f2138917b78395e0147522102b7eaa9cbc9494db518f387a8e996abd83291a9ff3ad7d4b74ef7e8f43e67f275210302049c65a18d53a04bfa18672b3cb0de4214de806b36fc939a503fe02fa0743852ae00000000",
     "author": 0,
     "approvals": {
       "0": [
-        "3045022100a2fae13d75ef59d618ee5efc47f16ee579f0f89785921dd8827acb3198ad4a330220376ce664a41ffabefabbaed89d392a54ec28c9ddc8f360e74bbb7bc6bb946ef201"
+        "3045022100e23caa92fdca32e9c50a186c651e7f54c150f329693a260e18d720148de7d687022041d740178ca29089450cc0b36b5503e28e6825dd1b4f92ba7304cf8d575a4bcb01"
+      ],
+      "1": [
+        "3044022060c8b70234e946814df040a021f34c6468b7d7cbc2aa070363b6ad86177a793802200b540cc622fed09625bc8ea1ba6e7fa70ca702afa3677e966f2138917b78395e01"
       ]
     },
     "rejections": {},
-    "signature": "2015f6688e0f5dfbfcda7699296ffa6531c5a43cfc3453def4c12bb4a846d560d82fadcf29122b4d37c7c82ef4b3bba1805042126777bca6273ac4b431cced006f",
+    "signature": "20264892b65f9c7d9540e76b0e9d59afc81d4f34f21612122d53d3fa7aa8d2587d04ea73efaa730fec489f77a06476cfa251eca476dc2a3b5d099addc84fdd6a47",
     "options": {
       "memo": "proposal2",
-      "timestamp": 1554552947,
+      "timestamp": 1555069077,
       "txoptions": {
         "subtractFee": true,
         "outputs": [
           {
-            "address": "RNVP3qXCDwSfrHwhLFDVu5397dCv2iq8zj",
+            "address": "RVRF62ZqRutUHCy5b553ZjNWaQR6TUcb4p",
             "value": 100000000
           }
         ]
       }
     },
-    "timestamp": 1554552947,
-    "createdAt": 1554552947,
+    "timestamp": 1555069077,
+    "createdAt": 1555069077,
     "rejectedAt": null,
-    "approvedAt": null,
+    "approvedAt": 1555069077,
     "m": 2,
     "n": 2,
-    "statusCode": 0,
-    "statusMessage": "Proposal is in progress.",
-    "cosignerDetails": {
-      "0": {
-        "id": 0,
-        "name": "cosigner1",
-        "authPubKey": "038e58debf3c55d1729b1f57722a2be2cda450ebdb903620c0f847386923636f2a",
-        "joinSignature": "1f2dc6e753c4488f2c6267039d77c4877057b26c9f9c42fab1698ba6ed7820d254179ccfc3cec71a7946898baf0332de772e4b321ef425c72f396b85dccdc98575",
-        "key": {
-          "xpubkey": "rpubKBAs1tZSUsgJ5mpU9V3CWEnkw1pmqgbC4TsxDFCyPwpbe5r1qDLhP6gfZ7j2x3xnRzTYJrvYFjrTp9h4Wy22N8ALD7tCc1Ksgf8irZv3PSY7"
-        }
-      },
-      "1": {
-        "id": 1,
-        "name": "cosigner2",
-        "authPubKey": "03201e17f3189f94fcbf3f5858b4892ff42a4f47f494c0ea0431ae05770b7e994a",
-        "joinSignature": "1f4c43e776c9f7b8b3019e98ee2ca2f6cff74a5b2b68243b43f167b04d12ce4a29675e9688da2f08a70d9226f755a598f78d608e8f9042659e52091c398d86e3d0",
-        "key": {
-          "xpubkey": "rpubKBAzAGcBuL1Cs7fUiJmnCWHdi4AYtLPjDSxJgipUgkxhzY6fdzC5oCVsGEvu8ttJnkRMtyDXpBaUL4pSc8qJH9gzzUxbRZPBHpnwnuZtZXNJ"
-        }
-      }
-    }
+    "statusCode": 1,
+    "statusMessage": "Proposal has been approved.",
+    "cosignerDetails": {}
   }
 }
+
 ```
 
 #### POST /:id/proposal/:name/reject
@@ -756,6 +745,7 @@ to sign `proposalOptions` that where used for creating proposal
 and are cached in proposal (and signed by author.)
 Cosigners will need local `authPrivKey`s to sign and signing process
 is same as the creation, with one difference:
+  - walletName: `test` (hex: `74657374`)
   - payload type will be rejection: `0x01`.
   - so encoded version will be: `017b226d656d6f223a2270726f706f73616c31222c2274696d657374616d70223a313535343534393736392c2274786f7074696f6e73223a7b227375627472616374466565223a747275652c226f757470757473223a5b7b2261646472657373223a225253646e5432795a766461326a386666336359517a635a42346f7171456d465a444c222c2276616c7565223a3130303030303030307d5d7d7d`.
 
@@ -766,7 +756,7 @@ Params:
 ```json5
 {
   // signed using `authPrivKey` of the cosigner.
-  "signature": "2015eb0776f8a52c5b6a213a85e2881147b997470fec7e2a26ea6a60cbfa5cd5c8788f1bf9a9ffc69bed68f886983192f9194958763eccfa082777b837bc145bfd"
+  "signature":"2030a42cdd77ddefe0ff44012c75d710f990d764b10f4dce43c084e02a62aa871b3b00d1561e5be1632f723dfd3f87cfb25ff56ce033f47e595a1697810d52a5ee"
 }
 ```
 
@@ -778,62 +768,39 @@ await client.rejectProposal(id, name, {
 
 HTTP Response
 ```json5
+
 {
   "id": 0,
   "memo": "proposal1",
   "tx": null,
   "author": 1,
   "approvals": {},
-  // rejection signatures by cosigned id
-  // see cosignerDetails to look up the cosigner.
   "rejections": {
-    // this rejection can be verified using cosigners authPubKey and proposal options.
-    "0": "1f498e58b5a7c587f32c9f6da32510276535365e040013acc0df4f24d43531a29b3ae3f736ea0af33364bbf91b74850d5cdc84c6bd8135a525e1818168b6481dc3"
+    "0": "2030a42cdd77ddefe0ff44012c75d710f990d764b10f4dce43c084e02a62aa871b3b00d1561e5be1632f723dfd3f87cfb25ff56ce033f47e595a1697810d52a5ee"
   },
-  // proposal authors signature when creating.
-  "signature": "2039890990919506189973f8fe0aef0cb30ada615fa7e2bfffddac5927ad3a34747699d11939a379b3ef75200713ec61d4f2683340cc9527d46dcea37ea9561ca9",
-  // options that client signed.
+  "signature": "1fbb47423e669edafaa48f1f05ae4367933d068b39514e30db1e4189b6b66a8be17f533d221206f7158a2bc88502da220cc9bf926ba7a50c9ea4e5c5d6e34cbb4f",
   "options": {
     "memo": "proposal1",
-    "timestamp": 1554553490,
+    "timestamp": 1555069254,
     "txoptions": {
       "subtractFee": true,
       "outputs": [
         {
-          "address": "RHTuHP9zsCTZbNBV5JG1TtTkbE6vLueUfz",
+          "address": "RP9MnZsGon9ue7ymmdZrmPypuPuWK9K75x",
           "value": 100000000
         }
       ]
     }
   },
-  "timestamp": 1554553490,
-  "createdAt": 1554553490,
-  "rejectedAt": 1554553490,
+  "timestamp": 1555069254,
+  "createdAt": 1555069254,
+  "rejectedAt": 1555069254,
   "approvedAt": null,
   "m": 2,
   "n": 2,
   "statusCode": 2,
   "statusMessage": "Cosigners rejected the proposal.",
-  "cosignerDetails": {
-    "0": {
-      "id": 0,
-      "name": "cosigner1",
-      "authPubKey": "0353c915fd7ece9cffd9b61d30011247d2092ad3fa37235ae18a9e14968d6f4dbf",
-      "joinSignature": "20565ccb0452c1d55585aee7e828f4ba58abea5f8c99ec2e8be75a1e5977b469c94e3fea2bd144de149ed74fc443fcd598f460c5a7088454d493dc1624f9f9629d",
-      "key": {
-        "xpubkey": "rpubKBA8ec1PhHg9CN6UXx5hkKVypKKX7RWkTKYp5bRrqoo2mrVvhppL9CVmNrRKVv48PoNCCUVkJv1RSbTrH5dA4WBqCXMJ7AJekwcPs8nyZ9Lh"
-      }
-    },
-    "1": {
-      "id": 1,
-      "name": "cosigner2",
-      "authPubKey": "03b6a1ecad9c4edfaf09f985368968fbe5d7a43954b5d26865fa115eb6b2a3fe1f",
-      "joinSignature": "20592ca1ac238bf34afe9299e866283572eb5f06508848a7dee2f15d8eb4031c2162200c9fae112089cb7b069a5c9b38088957ab07bc2a8d372179ed83b61818ac",
-      "key": {
-        "xpubkey": "rpubKBBHbXcTQA9CYKZS2YwagxedHyqHR93Rm5EBGmN16DaS9KVpACBLKzBQHKgm6vt8N4wixRM2A3HCTQrbZZEGBNnk8TVS8weiekRy78kwA464"
-      }
-    }
-  }
+  "cosignerDetails": {}
 }
 ```
 

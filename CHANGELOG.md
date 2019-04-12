@@ -8,6 +8,23 @@ Bmultisig CHANGELOG and notes.
 #### Signing and verification
   - Doc: [Signing and Verification](./docs/signing.md)
 
+#### HTTP API
+Proposal and cosigner json serializations have changed
+so it affected Events and HTTP endpoints using them.
+
+Some api endpoints, related to signing were changed:
+  - Create multisig wallet (PUT /:id)
+  - Join multisig wallet (POST /:id/join)
+  - Set new token for cosigner (PUT /:id/token)
+  - Removed retoken endpoint
+  - Create proposal (POST /:id/proposal)
+  - Get proposal info accept `tx` option. (GET /:id/proposal/:pid)
+  - Approve proposal (POST /:id/proposal/:pid/approve)
+  - Reject proposal (POST /:id/proposal/:pid/reject)
+
+#### Events
+Results for events are different as well.
+
 #### other
   - Get proposal info will accept `tx` boolean parameter, if client
   wants to include `mtx` object in the response.

@@ -704,13 +704,6 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
     assert.strictEqual(proposal.statusCode, Proposal.status.REJECTED);
     assert.strictEqual(Object.keys(proposal.rejections).length, 1);
     assert.strictEqual(proposal.rejections[0], signature.toString('hex'));
-    assert.deepStrictEqual(proposal.cosignerDetails[0], {
-      id: 0,
-      name: cosignerCtx1.name,
-      authPubKey: cosignerCtx1.authPubKey.toString('hex'),
-      joinSignature: cosignerCtx1.joinSignature.toString('hex'),
-      key: cosignerCtx1.accountKey.toJSON(network)
-    });
   });
 
   it('should create another proposal using same coins', async () => {
@@ -887,8 +880,6 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
         key: cosignerCtx2.accountKey.toJSON(network)
       }
     };
-
-    assert.deepStrictEqual(proposal.cosignerDetails, cosigners);
 
     for (const [wid, result] of eventResults) {
       assert.strictEqual(wid, WALLET_OPTIONS.id);
