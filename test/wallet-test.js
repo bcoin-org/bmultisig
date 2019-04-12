@@ -259,8 +259,8 @@ describe('MultisigWallet', function () {
     const mswallet = await msdb.getWallet('non-existing');
     const nonMultisigWallet = await msdb.getWallet('primary');
 
-    assert.ok(mswallet === null);
-    assert.ok(nonMultisigWallet === null);
+    assert.strictEqual(mswallet, null);
+    assert.strictEqual(nonMultisigWallet, null);
   });
 
   it('should list multisig wallets', async () => {
@@ -328,7 +328,7 @@ describe('MultisigWallet', function () {
     const wallets = await msdb.getWallets();
 
     assert.strictEqual(removed, true);
-    assert.ok(wallet === null);
+    assert.strictEqual(wallet, null);
     assert.strictEqual(wallets.length, 0);
   });
 

@@ -385,7 +385,7 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
       });
 
       assert.strictEqual(cosigner.name, cosignerCtx1.name);
-      assert.strictEqual(cosigner.token, newToken.toString('hex'));
+      assert.strictEqual(cosigner.token, newToken);
     }
 
     let err;
@@ -971,7 +971,7 @@ function getTXOptions(btc) {
 }
 
 function generateAddress() {
-  return KeyRing.generate().getAddress();
+  return KeyRing.generate(true).getAddress();
 }
 
 function waitFor(emitter, event, timeout = 1000) {
