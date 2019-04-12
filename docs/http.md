@@ -303,7 +303,7 @@ Params:
 ```
 
 ```javascript
-await client.retoken(id, { newToken: ... });
+await client.setToken(id, { newToken: ... });
 ```
 
 HTTP Response:

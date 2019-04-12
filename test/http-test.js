@@ -792,7 +792,7 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
       WALLET_OPTIONS.id,
       pid2,
       {
-        signatures,
+        signatures: signatures.map(s => s.toString('hex')),
         broadcast: true
       }
     );
