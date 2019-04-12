@@ -173,6 +173,7 @@ describe('Cosigner', function () {
 
     const signature = sigUtils.signMessage(raw, proofKey.privateKey);
 
+    assert.ok(!cosigner.verifyProof(Buffer.allocUnsafe(65), walletName));
     assert.ok(cosigner.verifyProof(signature, walletName));
   });
 
@@ -185,6 +186,7 @@ describe('Cosigner', function () {
 
     const clientCosigner = Cosigner.fromJSON(cosigner.toJSON());
 
+    assert.ok(!clientCosigner.verifyProof(Buffer.allocUnsafe(65), walletName));
     assert.ok(clientCosigner.verifyProof(signature, walletName));
   });
 
@@ -205,7 +207,15 @@ describe('Cosigner', function () {
     const signature = sigUtils.signMessage(raw, joinPrivKey);
     cosigner.joinSignature = signature;
 
+    const badPubKey = Buffer.allocUnsafe(33);
     assert.ok(cosigner.verifyJoinSignature(joinPubKey, walletName));
+    assert.ok(!cosigner.verifyJoinSignature(joinPubKey, ''));
+    assert.ok(!cosigner.verifyJoinSignature(badPubKey, walletName));
+
+    cosigner.joinSignature = Buffer.allocUnsafe(65);
+    assert.ok(!cosigner.verifyJoinSignature(joinPubKey, walletName));
+    assert.ok(!cosigner.verifyJoinSignature(joinPubKey, ''));
+    assert.ok(!cosigner.verifyJoinSignature(badPubKey, walletName));
   });
 
   it('should verify join signature (client)', () => {

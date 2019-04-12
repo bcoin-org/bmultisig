@@ -23,7 +23,7 @@ Some api endpoints, related to signing were changed:
   - Reject proposal (POST /:id/proposal/:pid/reject)
 
 #### Events
-Results for events are different as well.
+Results for events are different and match endpoint responses.
 
 #### other
   - Get proposal info will accept `tx` boolean parameter, if client
