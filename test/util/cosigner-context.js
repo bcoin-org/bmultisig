@@ -168,7 +168,7 @@ class CosignerContext {
 
     assert((type & 0xff) === type);
     assert(typeof options === 'string');
-    const hash = sigUtils.getProposalHash(type, options);
+    const hash = sigUtils.getProposalHash(this.walletName, type, options);
 
     const signature = sigUtils.signHash(hash, this.authPrivKey);
 
