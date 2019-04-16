@@ -66,6 +66,7 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
 
   before(async () => {
     await fullNode.open();
+    await fullNode.connect();
     await walletNode.open();
   });
 
