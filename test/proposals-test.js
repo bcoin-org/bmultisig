@@ -3,43 +3,60 @@
 
 'use strict';
 
-const assert = require('./util/assert');
+const assert = require('bsert');
 const walletUtils = require('./util/wallet');
 const testUtils = require('./util/utils');
+const CosignerCtx = require('./util/cosigner-context');
 
 // const Logger = require('blgr');
 const bcoin = require('bcoin');
-const {Script, KeyRing, MTX, Amount, hd} = bcoin;
+const {Script, KeyRing, MTX, Amount} = bcoin;
 const WalletDB = bcoin.wallet.WalletDB;
 const WalletNodeClient = require('../lib/walletclient');
 const MultisigDB = require('../lib/multisigdb');
-const Cosigner = require('../lib/primitives/cosigner');
 const Proposal = require('../lib/primitives/proposal');
+
+const {CREATE, REJECT} = Proposal.payloadType;
 
 const TEST_WALLET_ID = 'test1';
 const TEST_WALLET_ID2 = 'test2';
 
-const TEST_COSIGNER_1 = 'cosigner1';
-const TEST_COSIGNER_2 = 'cosinger2';
-const TEST_COSIGNER_3 = 'cosigner3';
-
-const TEST_M = 2;
-const TEST_N = 2;
-
-describe('MultisigProposals', function () {
+for (const WITNESS of [true, false])
+describe(`MultisigProposals ${WITNESS ? 'witness' : 'legacy'}`, function () {
   // 2-of-2 will be used for tests
-  const priv1 = getPrivKey().deriveAccount(44, 0, 0);
-  const priv2 = getPrivKey().deriveAccount(44, 0, 0);
-  const priv3 = getPrivKey().deriveAccount(44, 0, 0);
-  const xpub1 = priv1.toPublic();
-  const xpub2 = priv2.toPublic();
-  const xpub3 = priv3.toPublic();
-
   let wdb, msdb;
-  let mswallet, wallet, pdb; // 2-of-2
-  let mswallet2; // 2-of-3
 
-  let cosigner1, cosigner2, cosigner3;
+  let mswallet;
+  let wallet, pdb; // 2-of-2
+
+  const cosignerCtx1 = new CosignerCtx({
+    walletName: TEST_WALLET_ID,
+    name: 'cosigner1'
+  });
+  const cosignerCtx2 = new CosignerCtx({
+    walletName: TEST_WALLET_ID,
+    name: 'cosigner2',
+    joinPrivKey: cosignerCtx1.joinPrivKey
+  });
+  const cosignerCtx3 = new CosignerCtx({
+    walletName: TEST_WALLET_ID,
+    name: 'cosigner3',
+    joinPrivKey: cosignerCtx1.joinPrivKey
+  });
+
+  const [priv1, priv2, priv3] = [
+    cosignerCtx1.accountPrivKey,
+    cosignerCtx2.accountPrivKey,
+    cosignerCtx3.accountPrivKey
+  ];
+
+  const [xpub1, xpub2, xpub3] = [
+    cosignerCtx1.accountKey,
+    cosignerCtx2.accountKey,
+    cosignerCtx3.accountKey
+  ];
+
+  let cosigner1, cosigner2;
 
   beforeEach(async () => {
     // const logger = new Logger({
@@ -66,52 +83,16 @@ describe('MultisigProposals', function () {
     await wdb.open();
     await msdb.open();
 
-    cosigner1 = Cosigner.fromOptions({
-      name: TEST_COSIGNER_1,
-      key: xpub1
-    });
+    cosigner1 = cosignerCtx1.toCosigner();
+    cosigner2 = cosignerCtx2.toCosigner();
 
-    cosigner2 = Cosigner.fromOptions({
-      name: TEST_COSIGNER_2,
-      key: xpub2
-    });
-
-    cosigner3 = Cosigner.fromOptions({
-      name: TEST_COSIGNER_3,
-      key: xpub3
-    });
-
-    mswallet = await msdb.create({
-      id: TEST_WALLET_ID,
-      m: TEST_M,
-      n: TEST_N
-    }, cosigner1);
+    mswallet = await mkWallet(msdb, TEST_WALLET_ID, 2, 2, WITNESS, [
+      cosignerCtx1,
+      cosignerCtx2
+    ]);
 
     wallet = mswallet.wallet;
-
-    let joined = await msdb.join(TEST_WALLET_ID, cosigner2);
-
-    assert(joined, 'Could not join the wallet');
-    assert.strictEqual(cosigner1, joined.cosigners[0]);
-    assert.strictEqual(cosigner2, joined.cosigners[1]);
-
     pdb = mswallet.pdb;
-
-    mswallet2 = await msdb.create({
-      id: TEST_WALLET_ID2,
-      m: 2,
-      n: 3
-    }, cosigner1);
-
-    for (const cosigner of [cosigner2, cosigner3]) {
-      joined = await msdb.join(TEST_WALLET_ID2, cosigner);
-
-      assert(joined);
-    }
-
-    assert.strictEqual(cosigner1, joined.cosigners[0]);
-    assert.strictEqual(cosigner2, joined.cosigners[1]);
-    assert.strictEqual(cosigner3, joined.cosigners[2]);
   });
 
   afterEach(async () => {
@@ -142,7 +123,7 @@ describe('MultisigProposals', function () {
 
     const tx = await mswallet.createTX(txoptions);
 
-    assert.instanceOf(tx, MTX);
+    assert.ok(tx instanceof MTX);
     assert.strictEqual(tx.isSane(), true);
   });
 
@@ -153,11 +134,11 @@ describe('MultisigProposals', function () {
     const coins = await wallet.getCoins();
     assert.strictEqual(coins.length, 1);
 
-    const txoptions = getTXOptions(1);
+    const [txoptions] = getTXOptions(1);
 
     // create proposal
     const mtx = await mswallet.createTX(txoptions);
-    assert.instanceOf(mtx, MTX);
+    assert.ok(mtx instanceof MTX);
 
     for (const coin of coins)
       await mswallet.lockCoin(coin);
@@ -177,7 +158,7 @@ describe('MultisigProposals', function () {
       await mswallet.unlockCoin(coin);
 
     const mtx2 = await mswallet.createTX(txoptions);
-    assert.instanceOf(mtx2, MTX);
+    assert(mtx2 instanceof MTX);
   });
 
   it('should lock the coins on proposal creation', async () => {
@@ -186,23 +167,12 @@ describe('MultisigProposals', function () {
     const coins = await wallet.getCoins();
     assert.strictEqual(coins.length, 1);
 
-    const txoptions = getTXOptions(1);
-
-    const proposal = await mswallet.createProposal(
-      'proposal-1',
-      cosigner1,
-      txoptions
-    );
-
-    assert.instanceOf(proposal, Proposal);
+    const proposal = await mkProposal(mswallet, cosignerCtx1, 1);
+    assert.ok(proposal instanceof Proposal);
 
     let err;
     try {
-      await mswallet.createProposal(
-        'proposal-2',
-        cosigner2,
-        txoptions
-      );
+      await mkProposal(mswallet, cosignerCtx2, 1);
     } catch (e) {
       err = e;
     }
@@ -218,15 +188,9 @@ describe('MultisigProposals', function () {
     const coins = await wallet.getCoins();
     assert.strictEqual(coins.length, 1);
 
-    const txoptions = getTXOptions(1);
+    const proposal = await mkProposal(mswallet, cosignerCtx1, 1);
 
-    const proposal = await mswallet.createProposal(
-      'proposal-1',
-      cosigner1,
-      txoptions
-    );
-
-    assert.instanceOf(proposal, Proposal);
+    assert.ok(proposal instanceof Proposal);
 
     await msdb.close();
     await wdb.close();
@@ -238,11 +202,7 @@ describe('MultisigProposals', function () {
 
     let err;
     try {
-      await mswallet.createProposal(
-        'proposal-2',
-        cosigner2,
-        txoptions
-      );
+      await mkProposal(mswallet, cosignerCtx2, 1);
     } catch (e) {
       err = e;
     }
@@ -257,13 +217,8 @@ describe('MultisigProposals', function () {
 
     const coins = await wallet.getCoins();
 
-    const proposal = await mswallet.createProposal(
-      'proposal',
-      cosigner1,
-      getTXOptions(1)
-    );
-
-    assert.instanceOf(proposal, Proposal);
+    const proposal = await mkProposal(mswallet, cosignerCtx1, 1);
+    assert.ok(proposal instanceof Proposal);
 
     const pid = await mswallet.getPIDByOutpoint(coins[0]);
     const proposal2 = await mswallet.getProposalByOutpoint(coins[0]);
@@ -275,45 +230,29 @@ describe('MultisigProposals', function () {
   it('should get proposal', async () => {
     await walletUtils.fundWalletBlock(wdb, mswallet, 1);
 
-    const txoptions = getTXOptions(1);
-
-    const proposal1 = await mswallet.createProposal(
-      'proposal-1',
-      cosigner1,
-      txoptions
-    );
-
-    assert.instanceOf(proposal1, Proposal);
+    const proposal1 = await mkProposal(mswallet, cosignerCtx1, 1);
+    assert.ok(proposal1 instanceof Proposal);
 
     const proposal2 = await mswallet.getProposal(proposal1.id);
-
-    assert.instanceOf(proposal2, Proposal);
-
+    assert.ok(proposal2 instanceof Proposal);
     assert.deepStrictEqual(proposal1, proposal2);
   });
 
   it('should fail getting non-existent proposal', async () => {
     const proposal = await mswallet.getProposal(999);
-    assert.typeOf(proposal, 'null');
+    assert.ok(proposal === null);
   });
 
   it('should get proposal mtx', async () => {
     await walletUtils.fundWalletBlock(wdb, mswallet, 1);
     await walletUtils.fundWalletBlock(wdb, mswallet, 2);
 
-    const txoptions = getTXOptions(3);
-
-    const {id} = await mswallet.createProposal(
-      'proposal',
-      cosigner1,
-      txoptions
-    );
-
+    const {id} = await mkProposal(mswallet, cosignerCtx1, 3);
     const proposal = await mswallet.getProposal(id);
     const mtx = await mswallet.getProposalMTX(id);
 
-    assert.instanceOf(proposal, Proposal);
-    assert.instanceOf(mtx, MTX);
+    assert.ok(proposal instanceof Proposal);
+    assert.ok(mtx instanceof MTX);
 
     const inputPaths = await mswallet.getInputPaths(mtx);
 
@@ -325,47 +264,49 @@ describe('MultisigProposals', function () {
     await walletUtils.fundWalletBlock(wdb, mswallet, 1);
     await walletUtils.fundWalletBlock(wdb, mswallet, 1);
 
-    const txoptions = getTXOptions(1);
+    const p1 = await mkProposal(mswallet, cosignerCtx1, 1);
 
-    const p1 = await mswallet.createProposal('proposal', cosigner1, txoptions);
-    await mswallet.createProposal('proposal1', cosigner1, txoptions);
-    await mswallet.createProposal('proposal2', cosigner1, txoptions);
+    await mkProposal(mswallet, cosignerCtx1, 1);
+    await mkProposal(mswallet, cosignerCtx1, 1);
 
     const pendingProposals = await mswallet.getPendingProposals();
 
     assert.strictEqual(pendingProposals.length, 3);
 
-    const proposal1 = await mswallet.rejectProposal(p1.id, cosigner1);
+    const signature = cosignerCtx1.signProposal(REJECT, p1.options);
+    const proposal1 = await mswallet.rejectProposal(
+      p1.id,
+      cosigner1,
+      signature
+    );
+
     assert.strictEqual(proposal1.status, Proposal.status.REJECTED);
 
     const pendingProposals2 = await mswallet.getPendingProposals();
     assert.strictEqual(pendingProposals2.length, 2);
 
-    const proposal2 = await mswallet.createProposal(
-      'proposal3',
-      cosigner1,
-      txoptions
-    );
-
-    assert.instanceOf(proposal2, Proposal);
+    const proposal2 = await mkProposal(mswallet, cosignerCtx1, 1);
+    assert.ok(proposal2 instanceof Proposal);
   });
 
   it('should fail rejecting rejected proposal', async () => {
     await walletUtils.fundWalletBlock(wdb, mswallet, 1);
 
-    const txoptions = getTXOptions(1);
+    const p1 = await mkProposal(mswallet, cosignerCtx1, 1);
 
-    const p1 = await mswallet.createProposal('proposal', cosigner1, txoptions);
-    await mswallet.rejectProposal(p1.id, cosigner1);
+    const signature = cosignerCtx1.signProposal(REJECT, p1.options);
+    await mswallet.rejectProposal(p1.id, cosigner1, signature);
 
     let err;
     try {
-      await mswallet.rejectProposal(p1.id, cosigner2);
+      const signature = cosignerCtx2.signProposal(REJECT, p1.options);
+
+      await mswallet.rejectProposal(p1.id, cosigner2, signature);
     } catch (e) {
       err = e;
     }
 
-    assert.instanceOf(err, Error);
+    assert.ok(err instanceof Error);
     assert.strictEqual(err.message, 'Can not reject non pending proposal.');
   });
 
@@ -376,19 +317,13 @@ describe('MultisigProposals', function () {
     const pending = await mswallet.getPendingProposals();
     assert.strictEqual(pending.length, 0);
 
-    // create proposal
-    const proposalName = 'proposal1';
-    const txoptions = getTXOptions(2);
-    const proposal = await mswallet.createProposal(
-      proposalName,
-      cosigner1,
-      txoptions
-    );
-
+    const proposal = await mkProposal(mswallet, cosignerCtx1, 2, 'proposal1');
     const mtx = await mswallet.getProposalMTX(proposal.id);
     const paths = await mswallet.getInputPaths(mtx);
+    const rings = testUtils.getMTXRings(
+      mtx, paths, priv1, [xpub1, xpub2], 2, WITNESS
+    );
 
-    const rings = testUtils.getMTXRings(mtx, paths, priv1, [xpub1, xpub2], 2);
     const sigs = testUtils.getMTXSignatures(mtx, rings);
 
     assert.strictEqual(sigs.length, 2, 'Wrong number of signatures.');
@@ -439,7 +374,9 @@ describe('MultisigProposals', function () {
     assert.strictEqual(approved.approvals.has(cosigner1.id), true);
 
     // approve by second cosigner
-    const rings2 = testUtils.getMTXRings(mtx, paths, priv2, [xpub1, xpub2], 2);
+    const rings2 = testUtils.getMTXRings(
+      mtx, paths, priv2, [xpub1, xpub2], 2, WITNESS
+    );
     const sigs2 = testUtils.getMTXSignatures(mtx, rings2);
 
     const approved2 = await mswallet.approveProposal(
@@ -448,25 +385,31 @@ describe('MultisigProposals', function () {
       sigs2
     );
 
+    const pmtx = await mswallet.getProposalMTX(proposal.id);
+    assert(pmtx.verify());
+
     assert.strictEqual(approved2.approvals.size, 2);
     assert.strictEqual(approved2.approvals.has(cosigner1.id), true);
     assert.strictEqual(approved2.approvals.has(cosigner2.id), true);
   });
 
   it('should approve proposal (2-of-3)', async () => {
+    const mswallet2 = await mkWallet(msdb, TEST_WALLET_ID2, 2, 3, WITNESS, [
+      cosignerCtx1,
+      cosignerCtx2,
+      cosignerCtx3
+    ]);
+
+    const cosigner2 = cosignerCtx2.toCosigner();
+    const cosigner3 = cosignerCtx3.toCosigner();
+
     await walletUtils.fundWalletBlock(wdb, mswallet2, 1);
     await walletUtils.fundWalletBlock(wdb, mswallet2, 1);
 
     const pending = await mswallet2.getPendingProposals();
     assert.strictEqual(pending.length, 0);
 
-    const proposalName = 'proposal1';
-    const txoptions = getTXOptions(2);
-    const proposal = await mswallet2.createProposal(
-      proposalName,
-      cosigner1,
-      txoptions
-    );
+    const proposal = await mkProposal(mswallet2, cosignerCtx1, 2, 'proposal1');
 
     const mtx = await mswallet2.getProposalMTX(proposal.id);
     const paths = await mswallet2.getInputPaths(mtx);
@@ -474,7 +417,10 @@ describe('MultisigProposals', function () {
     const xpubs = [xpub1, xpub2, xpub3];
 
     { // cosigner2
-      const rings = testUtils.getMTXRings(mtx, paths, priv2, xpubs, 2);
+      const rings = testUtils.getMTXRings(
+        mtx, paths, priv2, xpubs, 2, WITNESS
+      );
+
       const sigs = testUtils.getMTXSignatures(mtx, rings);
 
       assert.strictEqual(sigs.length, 2);
@@ -490,9 +436,10 @@ describe('MultisigProposals', function () {
     }
 
     { // cosigner3
-      const rings = testUtils.getMTXRings(mtx, paths, priv3, xpubs, 2);
+      const rings = testUtils.getMTXRings(
+        mtx, paths, priv3, xpubs, 2, WITNESS
+      );
       const sigs = testUtils.getMTXSignatures(mtx, rings);
-
       assert.strictEqual(sigs.length, 2);
 
       const approved = await mswallet2.approveProposal(
@@ -500,6 +447,9 @@ describe('MultisigProposals', function () {
         cosigner3,
         sigs
       );
+
+      const pmtx = await mswallet2.getProposalMTX(proposal.id);
+      assert(pmtx.verify(), 'Transaction is not valid.');
 
       assert.strictEqual(approved.approvals.size, 2);
       assert.strictEqual(approved.approvals.has(cosigner3.id), true);
@@ -510,27 +460,22 @@ describe('MultisigProposals', function () {
     await walletUtils.fundWalletBlock(wdb, mswallet, 1);
     await walletUtils.fundWalletBlock(wdb, mswallet, 1);
 
-    const txoptions = getTXOptions(1);
-
-    const proposal = await mswallet.createProposal(
-      'proposal',
-      cosigner1,
-      txoptions
-    );
-
-    await mswallet.createProposal('proposal1', cosigner1, txoptions);
+    const proposal1 = await mkProposal(mswallet, cosignerCtx1, 1);
+    await mkProposal(mswallet, cosignerCtx1, 1);
 
     const pendingProposals = await mswallet.getPendingProposals();
     assert.strictEqual(pendingProposals.length, 2);
 
-    const mtx = await mswallet.getProposalMTX(proposal.id);
+    const mtx = await mswallet.getProposalMTX(proposal1.id);
     const paths = await mswallet.getInputPaths(mtx);
 
-    const rings = testUtils.getMTXRings(mtx, paths, priv1, [xpub1, xpub2], 2);
+    const rings = testUtils.getMTXRings(
+      mtx, paths, priv1, [xpub1, xpub2], 2, WITNESS
+    );
     const signatures = testUtils.getMTXSignatures(mtx, rings);
 
     await mswallet.approveProposal(
-      proposal.id,
+      proposal1.id,
       cosigner1,
       signatures
     );
@@ -538,21 +483,19 @@ describe('MultisigProposals', function () {
     let err;
 
     try {
-      await mswallet.approveProposal(proposal.id, cosigner1, signatures);
+      await mswallet.approveProposal(proposal1.id, cosigner1, signatures);
     } catch (e) {
       err = e;
     }
 
-    assert.instanceOf(err, Error);
+    assert.ok(err instanceof Error);
     assert.strictEqual(err.message, 'Cosigner already approved.');
   });
 
   it('should approve signed proposal', async () => {
     await walletUtils.fundWalletBlock(wdb, mswallet, 1);
 
-    const txoptions = getTXOptions(1);
-
-    const p1 = await mswallet.createProposal('proposal', cosigner1, txoptions);
+    const p1 = await mkProposal(mswallet, cosignerCtx1, 1);
 
     const pending = await mswallet.getPendingProposals();
     assert.strictEqual(pending.length, 1);
@@ -561,7 +504,9 @@ describe('MultisigProposals', function () {
       const mtx = await mswallet.getProposalMTX(p1.id);
       const paths = await mswallet.getInputPaths(mtx);
 
-      const rings = testUtils.getMTXRings(mtx, paths, priv, [xpub1, xpub2], 2);
+      const rings = testUtils.getMTXRings(
+        mtx, paths, priv, [xpub1, xpub2], 2, WITNESS
+      );
       const signatures = testUtils.getMTXSignatures(mtx, rings);
 
       // approve proposal
@@ -570,21 +515,27 @@ describe('MultisigProposals', function () {
 
     await approve(priv1, cosigner1);
     await approve(priv2, cosigner2);
+
+    const pmtx = await mswallet.getProposalMTX(p1.id);
+    assert(pmtx.verify());
   });
 
   it('should recover coins on rejection', async () => {
     await walletUtils.fundWalletBlock(wdb, mswallet, 1);
 
-    const proposal = await mswallet.createProposal(
-      'proposal',
-      cosigner1,
-      getTXOptions(1)
-    );
+    const proposal = await mkProposal(mswallet, cosignerCtx1, 1);
 
-    assert.instanceOf(proposal, Proposal);
+    assert.ok(proposal instanceof Proposal);
 
     const coins = await mswallet.getProposalCoins(proposal.id);
-    const rejected = await mswallet.rejectProposal(proposal.id, cosigner1);
+
+    const signature = cosignerCtx1.signProposal(REJECT, proposal.options);
+
+    const rejected = await mswallet.rejectProposal(
+      proposal.id,
+      cosigner1,
+      signature
+    );
 
     const coin = coins[0];
     const pidByOutpoint = await mswallet.getPIDByOutpoint(coin);
@@ -594,19 +545,13 @@ describe('MultisigProposals', function () {
   });
 
   it('should reject proposal on mempool double spend', async () => {
-    const txoptions = getTXOptions(1);
-
     const amount = Amount.fromBTC(1).toValue();
     const account = await mswallet.getAccount();
     const mtx = walletUtils.createFundTX(account.receiveAddress(), amount);
 
     await wdb.addTX(mtx.toTX());
 
-    const proposal = await mswallet.createProposal(
-      'proposal-1',
-      cosigner1,
-      txoptions
-    );
+    const proposal = await mkProposal(mswallet, cosignerCtx1, 1);
 
     const dstx = walletUtils.getDoubleSpendTransaction(mtx);
 
@@ -614,25 +559,20 @@ describe('MultisigProposals', function () {
 
     const checkProposal = await mswallet.getProposal(proposal.id);
 
-    assert.instanceOf(checkProposal, Proposal);
+    assert.ok(checkProposal instanceof Proposal);
     assert.strictEqual(checkProposal.status, Proposal.status.DBLSPEND);
   });
 
   it('should reject proposal on coin spend', async () => {
-    const txoptions = getTXOptions(1);
     await walletUtils.fundWalletBlock(wdb, mswallet, 1);
 
-    const proposal = await mswallet.createProposal(
-      'proposal-1',
-      cosigner1,
-      txoptions
-    );
+    const proposal = await mkProposal(mswallet, cosignerCtx1, 1);
 
     const mtx = await mswallet.getProposalMTX(proposal.id);
     const paths = await mswallet.getInputPaths(mtx);
 
     const sign = async (priv) => {
-      mtx.inputs.forEach((input, i) => {
+      mtx.inputs.forEach((_, i) => {
         const path = paths[i];
 
         // derive correct priv key
@@ -650,6 +590,8 @@ describe('MultisigProposals', function () {
           [p1.publicKey, p2.publicKey]
         );
 
+        ring.witness = WITNESS;
+
         const signed = mtx.sign(ring);
 
         assert.strictEqual(signed, 1);
@@ -663,21 +605,15 @@ describe('MultisigProposals', function () {
 
     const checkProposal = await mswallet.getProposal(proposal.id);
 
-    assert.instanceOf(checkProposal, Proposal);
+    assert.ok(checkProposal instanceof Proposal);
     assert.strictEqual(checkProposal.status, Proposal.status.DBLSPEND);
   });
 
   it('should reject proposal on reorg double spend', async () => {
-    const txoptions = getTXOptions(1);
     const mtx = await walletUtils.fundWalletBlock(wdb, mswallet, 1);
 
-    const proposal1 = await mswallet.createProposal(
-      'proposal-1',
-      cosigner1,
-      txoptions
-    );
-
-    assert.instanceOf(proposal1, Proposal);
+    const proposal = await mkProposal(mswallet, cosignerCtx1, 1);
+    assert.ok(proposal instanceof Proposal);
 
     await walletUtils.removeBlock(wdb);
     await walletUtils.doubleSpendTransaction(wdb, mtx.toTX());
@@ -685,9 +621,9 @@ describe('MultisigProposals', function () {
     // TODO: remove timeout after events
     await new Promise(r => setTimeout(r, 100));
 
-    const checkProposal = await mswallet.getProposal(proposal1.id);
+    const checkProposal = await mswallet.getProposal(proposal.id);
 
-    assert.instanceOf(checkProposal, Proposal);
+    assert.ok(checkProposal instanceof Proposal);
     assert.strictEqual(checkProposal.status, Proposal.status.DBLSPEND);
   });
 });
@@ -696,20 +632,104 @@ describe('MultisigProposals', function () {
  * Helpers
  */
 
+/**
+ * @param {MultisigDB} msdb
+ * @param {String} walletName
+ * @param {Number} m
+ * @param {Number} n
+ * @param {CosignerCtx[]} cosigners
+ * @returns {MultisigWallet}
+ */
+
+async function mkWallet(msdb, walletName, m, n, witness = true, cosignerCtxs = []) {
+  const cosigners = cosignerCtxs.map((c) => {
+    c.walletName = walletName;
+    c.refresh();
+    return c.toCosigner();
+  });
+
+  const author = cosigners.shift();
+  const mswallet = await msdb.create({
+    id: walletName,
+    m: m,
+    n: n,
+    witness: witness,
+    joinPubKey: cosignerCtxs[0].joinPubKey
+  }, author);
+
+  assert(cosigners.length === n - 1);
+
+  let last;
+  for (const cosigner of cosigners) {
+    last = await msdb.join(walletName, cosigner);
+    assert.ok(last, 'Could not join wallet.');
+  }
+
+  assert.strictEqual(author, last.cosigners[0]);
+  for (const [i, cosigner] of cosigners.entries()) {
+    assert.strictEqual(cosigner, last.cosigners[i + 1]);
+  }
+
+  return mswallet;
+}
+
+/**
+ * @ignore
+ * @param {MultisigWallet} wallet
+ * @param {CosignerCtx} cosignerCtx
+ * @param {Number} btc
+ * @param {String} [memo = 'proposal']
+ * @returns {Promise<Proposal>}
+ */
+
+async function mkProposal(wallet, cosignerCtx, btc, memo = 'proposal') {
+  const [txoptions, httpTXOptions] = getTXOptions(btc);
+  const cosigner = cosignerCtx.toCosigner();
+
+  const options = {
+    memo: memo,
+    timestamp: now(),
+    txoptions: httpTXOptions
+  };
+
+  const signature = cosignerCtx.signProposal(CREATE, options);
+
+  const [proposal] = await wallet.createProposal(
+    options,
+    cosigner,
+    txoptions,
+    signature
+  );
+
+  return proposal;
+}
+
 function getTXOptions(btc) {
-  return {
+  const address = generateAddress();
+
+  const txoptions = {
     subtractFee: true,
     outputs: [{
-      address: generateAddress(),
+      address: address,
       value: Amount.fromBTC(btc).toValue()
     }]
   };
-}
 
-function getPrivKey() {
-  return hd.PrivateKey.generate();
+  const httpTXOptions = {
+    subtractFee: true,
+    outputs: [{
+      address: address.toString(),
+      value: Amount.fromBTC(btc).toValue()
+    }]
+  };
+
+  return [txoptions, httpTXOptions];
 }
 
 function generateAddress() {
   return KeyRing.generate().getAddress();
+}
+
+function now() {
+  return Math.floor(Date.now() / 1000);
 }

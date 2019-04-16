@@ -3,48 +3,61 @@
 
 'use strict';
 
-const assert = require('./util/assert');
+const assert = require('bsert');
 const Proposal = require('../lib/primitives/proposal');
 const Cosigner = require('../lib/primitives/cosigner');
 const {ApprovalsMapRecord} = Proposal;
-const {RejectionsSetRecord} = Proposal;
+const {RejectionsMapRecord} = Proposal;
 const {SignaturesRecord} = Proposal;
 const {hd} = require('bcoin');
+const secp256k1 = require('bcrypto/lib/secp256k1');
 
-const TEST_OPTIONS = {
+const ZERO_SIG = Buffer.alloc(65, 0x00);
+const TX_SIG = Buffer.alloc(5, 0x00);
+
+const PROPOSAL_OPTIONS = {
   id: 1,
   memo: 'test1',
   m: 2,
   n: 3,
-  author: 0
+  author: 0,
+  timestamp: Math.floor(Date.now() / 1000)
+};
+
+const TEST_OPTIONS = {
+  ...PROPOSAL_OPTIONS,
+  options: PROPOSAL_OPTIONS,
+  signature: Buffer.alloc(65, 0)
 };
 
 const TEST_KEY = hd.generate().toPublic();
 
-const COSIGNERS = [
-  Cosigner.fromOptions({
-    id: 0,
-    name: 'cosigner1',
-    key: TEST_KEY
-  }),
-  Cosigner.fromOptions({
-    id: 1,
-    name: 'cosigner2',
-    key: TEST_KEY
-  }),
-  Cosigner.fromOptions({
-    id: 2,
-    name: 'cosigner3',
-    key: TEST_KEY
-  })
-];
+const COSIGNERS = [];
+
+for (let i = 0; i < 3; i++) {
+  const privKey = secp256k1.privateKeyGenerate();
+  const pubKey = secp256k1.publicKeyCreate(privKey, true);
+
+  const cosigner = Cosigner.fromOptions({
+    id: i,
+    name: 'cosigner' + (i + 1),
+    key: TEST_KEY,
+    authPubKey: pubKey,
+    joinSignature: Buffer.alloc(65, 1)
+  });
+
+  COSIGNERS.push(cosigner);
+}
 
 describe('Proposal', function () {
   it('should create proposal from option', () => {
     const proposal = Proposal.fromOptions(TEST_OPTIONS);
 
-    for (const key of Object.keys(TEST_OPTIONS))
-      assert.strictEqual(proposal[key], TEST_OPTIONS[key]);
+    for (const key of Object.keys(PROPOSAL_OPTIONS))
+      assert.strictEqual(proposal[key], PROPOSAL_OPTIONS[key]);
+
+    assert.strictEqual(proposal.options, JSON.stringify(PROPOSAL_OPTIONS));
+    assert.bufferEqual(proposal.signature, TEST_OPTIONS.signature);
   });
 
   it('should serialize to JSON and recover', () => {
@@ -58,30 +71,31 @@ describe('Proposal', function () {
 
   it('should serialize to JSON and recover (cosigners)', () => {
     const proposal = Proposal.fromOptions(TEST_OPTIONS);
-    const cosigner2 = Cosigner.fromOptions(COSIGNERS[1]);
-    const cosigner3 = Cosigner.fromOptions(COSIGNERS[2]);
+    const cosigner1 = Cosigner.fromOptions(COSIGNERS[1]);
+    const cosigner2 = Cosigner.fromOptions(COSIGNERS[2]);
 
-    proposal.approve(cosigner2, []);
-    proposal.reject(cosigner3);
+    proposal.approve(cosigner1, [null, TX_SIG]);
+    proposal.reject(cosigner2, Buffer.alloc(65));
 
-    const json = proposal.toJSON(null, COSIGNERS);
+    const json = proposal.getJSON(null, COSIGNERS);
     const proposal1 = Proposal.fromJSON(json);
 
     // check author details first
-    assert.deepStrictEqual(json.authorDetails, COSIGNERS[0].toJSON());
+    assert.deepStrictEqual(
+      json.cosignerDetails[json.author],
+      COSIGNERS[0].toJSON()
+    );
 
-    for (const cosignerJSON of json.cosignerApprovals) {
-      const id = cosignerJSON.id;
-      const cosigner = COSIGNERS[id];
+    for (const id of Object.keys(json.approvals)) {
+      const details = json.cosignerDetails[id];
 
-      assert.deepStrictEqual(cosignerJSON, cosigner.toJSON());
+      assert.deepStrictEqual(details, COSIGNERS[id].toJSON());
     }
 
-    for (const cosignerJSON of json.cosignerRejections) {
-      const id = cosignerJSON.id;
-      const cosigner = COSIGNERS[id];
+    for (const id of Object.keys(json.rejections)) {
+      const details = json.cosignerDetails[id];
 
-      assert.deepStrictEqual(cosignerJSON, cosigner.toJSON());
+      assert.deepStrictEqual(details, COSIGNERS[id].toJSON());
     }
 
     assert(proposal.equals(proposal1), true);
@@ -107,16 +121,19 @@ describe('Proposal', function () {
     const cosigner1 = COSIGNERS[0];
     const cosigner2 = COSIGNERS[1];
 
-    proposal.reject(cosigner1);
+    proposal.reject(cosigner1, Buffer.alloc(65));
 
     assert.strictEqual(proposal.rejections.size, 1);
     assert.strictEqual(proposal.status, Proposal.status.PROGRESS);
     assert.strictEqual(proposal.rejections.has(cosigner1.id), true);
-    assert.deepStrictEqual(proposal.rejections.toJSON(), [cosigner1.id]);
+    assert.deepStrictEqual(
+      Array.from(proposal.rejections.keys()),
+      [cosigner1.id]
+    );
 
     let err;
     try {
-      proposal.reject(cosigner1);
+      proposal.reject(cosigner1, Buffer.alloc(65));
     } catch (e) {
       err = e;
     }
@@ -124,14 +141,22 @@ describe('Proposal', function () {
     assert(err);
     assert.strictEqual(err.message, 'Cosigner already rejected.');
 
-    proposal.reject(cosigner2);
+    proposal.reject(cosigner2, Buffer.alloc(65));
 
     assert.strictEqual(proposal.rejections.size, 2);
     assert.notStrictEqual(proposal.closedAt, 0);
     assert.strictEqual(proposal.status, Proposal.status.REJECTED);
     assert.strictEqual(proposal.rejections.has(0), true);
     assert.strictEqual(proposal.rejections.has(1), true);
-    assert.deepStrictEqual(proposal.rejections.toJSON(), [0, 1]);
+    assert.deepStrictEqual(
+      Array.from(proposal.rejections.keys()),
+      [0, 1]
+    );
+
+    assert.deepStrictEqual(proposal.rejections.toJSON(), {
+      0: ZERO_SIG.toString('hex'),
+      1: ZERO_SIG.toString('hex')
+    });
   });
 
   it('should approve proposal', () => {
@@ -139,7 +164,7 @@ describe('Proposal', function () {
     const cosigner1 = COSIGNERS[0];
     const cosigner2 = COSIGNERS[1];
 
-    proposal.approve(cosigner1, []);
+    proposal.approve(cosigner1, [null, TX_SIG]);
 
     assert.strictEqual(proposal.approvals.size, 1);
     assert.strictEqual(proposal.status, Proposal.status.PROGRESS);
@@ -147,7 +172,7 @@ describe('Proposal', function () {
 
     let err;
     try {
-      proposal.approve(cosigner1, []);
+      proposal.approve(cosigner1, [null, TX_SIG]);
     } catch (e) {
       err = e;
     }
@@ -155,14 +180,18 @@ describe('Proposal', function () {
     assert(err);
     assert.strictEqual(err.message, 'Cosigner already approved.');
 
-    proposal.approve(cosigner2, []);
+    proposal.approve(cosigner2, [null, TX_SIG]);
 
     assert.strictEqual(proposal.approvals.size, 2);
     assert.notStrictEqual(proposal.closedAt, 0);
     assert.strictEqual(proposal.status, Proposal.status.APPROVED);
     assert.strictEqual(proposal.approvals.has(0), true);
     assert.strictEqual(proposal.approvals.has(1), true);
-    assert.deepStrictEqual(proposal.approvals.toJSON(), [0, 1]);
+    assert.deepStrictEqual(Array.from(proposal.approvals.keys()), [0, 1]);
+    assert.deepStrictEqual(proposal.approvals.toJSON(), {
+      0: [undefined, TX_SIG.toString('hex')],
+      1: [undefined, TX_SIG.toString('hex')]
+    });
   });
 
   it('should force reject proposal', () => {
@@ -256,16 +285,29 @@ describe('Proposal', function () {
 
       assert.strictEqual(sigRecord.equals(sigRecord2), true);
     });
+
+    it('should serialize to JSON and deserialize', () => {
+      const signatures = [
+        Buffer.alloc(5, 0),
+        Buffer.alloc(32, 0)
+      ];
+
+      const signaturesRecord1 = SignaturesRecord.fromSignatures(signatures);
+      const json = signaturesRecord1.toJSON();
+      const signaturesRecord2 = SignaturesRecord.fromJSON(json);
+
+      assert.ok(signaturesRecord1.equals(signaturesRecord2));
+    });
   });
 
-  describe('RejectionsSetRecord', function () {
-    it('should create empty rejections set', () => {
-      const rejRecord1 = new RejectionsSetRecord();
+  describe('RejectionsMapRecord', function () {
+    it('should create empty rejections map', () => {
+      const rejRecord1 = new RejectionsMapRecord();
 
       assert.strictEqual(rejRecord1.size, 0);
 
       const raw = rejRecord1.toRaw();
-      const rejRecord2 = RejectionsSetRecord.fromRaw(raw);
+      const rejRecord2 = RejectionsMapRecord.fromRaw(raw);
 
       assert.bufferEqual(raw, Buffer.from([0x00]));
 
@@ -273,32 +315,72 @@ describe('Proposal', function () {
       assert.strictEqual(rejRecord1.equals(rejRecord2), true);
     });
 
-    it('should initialize record', () => {
-      const elements = new Set([3, 5, 2, 10]);
-      const rejRecord1 = RejectionsSetRecord.fromSet(elements);
-
-      assert.strictEqual(rejRecord1.size, 4);
-
-      const raw = rejRecord1.toRaw();
+    it('should reserialize empty record', () => {
+      const rejectionsRecord = new RejectionsMapRecord();
+      const raw = rejectionsRecord.toRaw();
 
       assert.bufferEqual(
         raw,
-        Buffer.from('040305020a', 'hex')
+        Buffer.from([0x00])
       );
 
-      const rejRecord2 = RejectionsSetRecord.fromRaw(raw);
+      const rejectionsRecord2 = RejectionsMapRecord.fromRaw(raw);
 
-      assert.strictEqual(rejRecord2.size, 4);
-      assert.strictEqual(rejRecord1.equals(rejRecord2), true);
+      assert.strictEqual(rejectionsRecord.equals(rejectionsRecord2), true);
     });
 
-    it('should reserialize rejection set record', () => {
-      const rejRecord1 = RejectionsSetRecord.fromArray([2, 1]);
+    it('should reserialize record (1)', () => {
+      const record1 = new RejectionsMapRecord();
+      const signature = Buffer.alloc(65, 1);
 
-      const json = rejRecord1.toJSON();
-      const rejRecord2 = RejectionsSetRecord.fromJSON(json);
+      record1.set(0, signature);
 
-      assert(rejRecord1.equals(rejRecord2));
+      const raw = record1.toRaw();
+      const json = record1.toJSON();
+
+      assert.bufferEqual(
+        raw,
+        Buffer.concat([Buffer.from('0100', 'hex'), signature])
+      );
+
+      const record2 = RejectionsMapRecord.fromRaw(raw);
+      const record3 = RejectionsMapRecord.fromJSON(json);
+
+      assert(record2.equals(record1));
+      assert(record3.equals(record1));
+    });
+
+    it('should reserialize record (4)', () => {
+      const json = {
+        0: Buffer.alloc(65, 0).toString('hex'),
+        1: Buffer.alloc(65, 1).toString('hex'),
+        2: Buffer.alloc(65, 2).toString('hex'),
+        10: Buffer.alloc(65, 10).toString('hex')
+      };
+
+      const record1 = RejectionsMapRecord.fromJSON(json);
+
+      assert.strictEqual(record1.size, 4);
+
+      const raw = record1.toRaw();
+      const json1 = record1.toJSON() ;
+      const record2 = RejectionsMapRecord.fromRaw(raw);
+
+      assert(record2.equals(record1));
+      assert.deepStrictEqual(json, json1);
+    });
+
+    it('should clone record', () => {
+      const record1 = RejectionsMapRecord.fromJSON({
+        32: Buffer.alloc(65, 32).toString('hex'),
+        45: Buffer.alloc(65, 45).toString('hex')
+      });
+
+      assert.strictEqual(record1.size, 2);
+
+      const record2 = record1.clone();
+
+      assert(record1.equals(record2));
     });
   });
 
@@ -380,7 +462,7 @@ describe('Proposal', function () {
       approvedRecord1.set(2, sigRecord2);
 
       const json = approvedRecord1.toJSON();
-      const approvedRecord2 = RejectionsSetRecord.fromJSON(json);
+      const approvedRecord2 = ApprovalsMapRecord.fromJSON(json);
 
       assert.strictEqual(approvedRecord1.size, approvedRecord2.size);
 
