@@ -5,6 +5,11 @@ Bmultisig CHANGELOG and notes.
 
 ### API Changes
 
+#### Bmultisig Client
+MultisigClient has moved back to bmultisig.
+Client apis will have to use `bcrypto` as well as `bcoin`
+primitives, so there is not big advantage of having them separate.
+
 #### Signing and verification
   - Doc: [Signing and Verification](./docs/signing.md)
 

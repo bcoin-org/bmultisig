@@ -15,7 +15,7 @@ const Proposal = require('../lib/primitives/proposal');
 const CosignerCtx = require('./util/cosigner-context');
 const {CREATE, REJECT} = Proposal.payloadType;
 
-const {MultisigClient} = require('bmultisig-client');
+const MultisigClient = require('../lib/client');
 const {WalletClient} = require('bclient');
 
 const NETWORK_NAME = 'regtest';

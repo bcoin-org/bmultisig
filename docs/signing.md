@@ -11,8 +11,6 @@ Signatures will be generated from data using similar to
 what `signmessage` RPC call does and will return signature with same encoding.
 This way it will be compatible with bitcoind APIs as well as hardware signing.
 We will be refering to this method when talking about signing.
-`bmultisig-client` will include additional utilities for handling
-signatures and validation.
   - varSize of magic string (Bitcoin Signed Message:\n)
   - magic string
   - varSize of data
