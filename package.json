@@ -1,6 +1,6 @@
 {
   "name": "bmultisig",
-  "version": "1.1.0-beta",
+  "version": "2.0.0-beta",
   "description": "Bcoin wallet plugin for multi signature transaction proposals",
   "repository": "git://github.com/bcoin-org/bmultisig.git",
   "homepage": "https://github.com/bcoin-org/bmultisig",
@@ -31,7 +31,7 @@
   "dependencies": {
     "bclient": "^0.1.7",
     "bcoin": "~1.0.2",
-    "bcrypto": "^3.1.1",
+    "bcrypto": "^3.1.5",
     "bdb": "^1.1.7",
     "bevent": "^0.1.5",
     "blgr": "^0.1.7",
@@ -43,7 +43,7 @@
     "bweb": "^0.1.8"
   },
   "devDependencies": {
-    "bmocha": "^2.1.0"
+    "bmocha": "^2.1.1"
   },
   "browser": {
     "./lib/bmultisig": "./lib/bmultisig-browser"
