@@ -1,6 +1,12 @@
 Bmultisig CHANGELOG and notes.
 =======
 
+## 2.0.0-beta.1
+
+#### Other
+node.js version check: `>=8.0.0` and `<12.0.0`.
+
+
 ## 2.0.0-beta
 
 ### API Changes
