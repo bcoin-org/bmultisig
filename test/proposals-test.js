@@ -109,6 +109,7 @@ describe(`MultisigProposals ${WITNESS ? 'witness' : 'legacy'}`, function () {
 
   it('should create transaction', async () => {
     await walletUtils.fundWalletBlock(wdb, mswallet, 1);
+    await walletUtils.fundWalletBlock(wdb, mswallet, 1);
 
     const account = await mswallet.getAccount();
     const address = account.receiveAddress();
@@ -117,7 +118,7 @@ describe(`MultisigProposals ${WITNESS ? 'witness' : 'legacy'}`, function () {
       subtractFee: true,
       outputs: [{
         address: address,
-        value: Amount.fromBTC(1).toValue()
+        value: Amount.fromBTC(2).toValue()
       }]
     };
 
@@ -130,11 +131,13 @@ describe(`MultisigProposals ${WITNESS ? 'witness' : 'legacy'}`, function () {
   it('should lock the coins and recover locked coins', async () => {
     // this is mostly wallet test than proposal
     await walletUtils.fundWalletBlock(wdb, mswallet, 1);
+    await walletUtils.fundWalletBlock(wdb, mswallet, 1);
+    await walletUtils.fundWalletBlock(wdb, mswallet, 1);
 
     const coins = await wallet.getCoins();
-    assert.strictEqual(coins.length, 1);
+    assert.strictEqual(coins.length, 3);
 
-    const [txoptions] = getTXOptions(1);
+    const [txoptions] = getTXOptions(3);
 
     // create proposal
     const mtx = await mswallet.createTX(txoptions);
@@ -150,7 +153,7 @@ describe(`MultisigProposals ${WITNESS ? 'witness' : 'legacy'}`, function () {
       err = e;
     }
 
-    const message = 'Not enough funds. (available=0.0, required=1.0)';
+    const message = 'Not enough funds. (available=0.0, required=3.0)';
     assert(err);
     assert.strictEqual(err.message, message);
 
@@ -163,21 +166,23 @@ describe(`MultisigProposals ${WITNESS ? 'witness' : 'legacy'}`, function () {
 
   it('should lock the coins on proposal creation', async () => {
     await walletUtils.fundWalletBlock(wdb, mswallet, 1);
+    await walletUtils.fundWalletBlock(wdb, mswallet, 1);
+    await walletUtils.fundWalletBlock(wdb, mswallet, 1);
 
     const coins = await wallet.getCoins();
-    assert.strictEqual(coins.length, 1);
+    assert.strictEqual(coins.length, 3);
 
-    const proposal = await mkProposal(mswallet, cosignerCtx1, 1);
+    const proposal = await mkProposal(mswallet, cosignerCtx1, 3);
     assert.ok(proposal instanceof Proposal);
 
     let err;
     try {
-      await mkProposal(mswallet, cosignerCtx2, 1);
+      await mkProposal(mswallet, cosignerCtx2, 3);
     } catch (e) {
       err = e;
     }
 
-    const message = 'Not enough funds. (available=0.0, required=1.0)';
+    const message = 'Not enough funds. (available=0.0, required=3.0)';
     assert(err);
     assert.strictEqual(err.message, message);
   });
