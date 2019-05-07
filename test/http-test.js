@@ -505,10 +505,15 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
   it('should fund and create transaction', async () => {
     const account = await testWalletClient1.getAccount(WALLET_OPTIONS.id);
     const addr = account.receiveAddress;
+    const account2 = await testWalletClient1.getAccount(WALLET_OPTIONS.id);
+    const addr2 = account2.receiveAddress;
 
+    await walletUtils.fundAddressBlock(wdb, addr, 2);
+    await walletUtils.fundAddressBlock(wdb, addr, 1);
+    await walletUtils.fundAddressBlock(wdb, addr2, 1);
     await walletUtils.fundAddressBlock(wdb, addr, 1);
 
-    const txoptions = getTXOptions(1);
+    const txoptions = getTXOptions(5);
 
     const txjson = await testWalletClient1.createTX(
       WALLET_OPTIONS.id,
@@ -519,7 +524,7 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
     const tx = TX.fromJSON(txjson);
 
     assert.ok(tx instanceof TX);
-    assert.strictEqual(tx.inputs.length, 1);
+    assert.strictEqual(tx.inputs.length, 4);
     assert.strictEqual(tx.outputs.length, 1);
   });
 
@@ -530,7 +535,7 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
       waitForBind(testWalletClient2, 'proposal created')
     ]);
 
-    const txoptions = getTXOptions(1);
+    const txoptions = getTXOptions(5);
     const proposalOptions = {
       memo: 'proposal1',
       timestamp: now(),
@@ -708,7 +713,7 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
   });
 
   it('should create another proposal using same coins', async () => {
-    const txoptions = getTXOptions(1);
+    const txoptions = getTXOptions(5);
     const proposalOptions = {
       memo: 'proposal2',
       timestamp: now(),
@@ -890,7 +895,7 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
 
     // we are not spending it yet.
     await wdb.addBlock(walletUtils.nextBlock(wdb), []);
-    assert.strictEqual(Amount.fromBTC(1).toValue(), balance1.confirmed);
+    assert.strictEqual(Amount.fromBTC(5).toValue(), balance1.confirmed);
 
     assert.strictEqual(proposal.statusCode, Proposal.status.APPROVED);
     assert.strictEqual(Object.keys(proposal.approvals).length, 2);
