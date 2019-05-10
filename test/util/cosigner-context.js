@@ -197,15 +197,16 @@ class CosignerContext {
 
   toHTTPOptions() {
     return {
-      cosignerName: this.name,
-      cosignerPurpose: this.purpose,
-      cosignerFingerPrint: this.fingerPrint,
-      cosignerData: this.data.toString('hex'),
-
-      token: this.token.toString('hex'),
-      accountKey: this.xpub,
-      accountKeyProof: this.xpubProof.toString('hex'),
-      authPubKey: this.authPubKey.toString('hex'),
+      cosigner: {
+        name: this.name,
+        purpose: this.purpose,
+        fingerPrint: this.fingerPrint,
+        data: this.data.toString('hex'),
+        token: this.token.toString('hex'),
+        accountKey: this.xpub,
+        accountKeyProof: this.xpubProof.toString('hex'),
+        authPubKey: this.authPubKey.toString('hex')
+      },
       joinSignature: this.joinSignature.toString('hex')
     };
   }

@@ -147,15 +147,15 @@ describe('Cosigner', function () {
 
     const joinSignature = cosigner.joinSignature.toString('hex');
 
-    assert.strictEqual(options.cosignerName, cosigner.name);
-    assert.strictEqual(options.cosignerPurpose, cosigner.purpose);
-    assert.strictEqual(options.cosignerFingerPrint, cosigner.fingerPrint);
-    assert.strictEqual(options.cosignerData, cosigner.data.toString('hex'));
-    assert.strictEqual(options.cosignerFingerPrint, cosigner.fingerPrint);
-    assert.strictEqual(options.accountKey, cosigner.key.xpubkey());
-    assert.strictEqual(options.token, cosigner.token.toString('hex'));
+    assert.strictEqual(options.cosigner.name, cosigner.name);
+    assert.strictEqual(options.cosigner.purpose, cosigner.purpose);
+    assert.strictEqual(options.cosigner.fingerPrint, cosigner.fingerPrint);
+    assert.strictEqual(options.cosigner.data, cosigner.data.toString('hex'));
+    assert.strictEqual(options.cosigner.accountKey, cosigner.key.xpubkey());
+    assert.strictEqual(options.cosigner.token, cosigner.token.toString('hex'));
     assert.strictEqual(options.joinSignature, joinSignature);
-    assert.strictEqual(options.authPubKey, cosigner.authPubKey.toString('hex'));
+    assert.strictEqual(options.cosigner.authPubKey,
+      cosigner.authPubKey.toString('hex'));
   });
 
   it('should verify proof signature', () => {

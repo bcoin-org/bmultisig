@@ -182,16 +182,16 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
     assert.strictEqual(wallet.cosigners.length, 1);
 
     const cosigner = wallet.cosigners[0];
-    assert.strictEqual(cosigner.name, options.cosignerName);
-    assert.strictEqual(cosigner.purpose, options.cosignerPurpose);
-    assert.strictEqual(cosigner.data, options.cosignerData);
-    assert.strictEqual(cosigner.fingerPrint, options.cosignerFingerPrint);
-    assert.strictEqual(cosigner.token, options.token);
+    assert.strictEqual(cosigner.name, options.cosigner.name);
+    assert.strictEqual(cosigner.purpose, options.cosigner.purpose);
+    assert.strictEqual(cosigner.data, options.cosigner.data);
+    assert.strictEqual(cosigner.fingerPrint, options.cosigner.fingerPrint);
+    assert.strictEqual(cosigner.token, options.cosigner.token);
     assert.strictEqual(cosigner.token.length, 64);
     assert.strictEqual(cosigner.tokenDepth, 0);
-    assert.strictEqual(cosigner.authPubKey, options.authPubKey);
+    assert.strictEqual(cosigner.authPubKey, options.cosigner.authPubKey);
     assert.strictEqual(cosigner.joinSignature, options.joinSignature);
-    assert.strictEqual(cosigner.key.xpubkey, options.accountKey);
+    assert.strictEqual(cosigner.accountKey, options.cosigner.accountKey);
 
     testWalletClient1 = new MultisigClient({
       port: network.walletPort,
@@ -280,10 +280,13 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
       name: cosignerCtx1.name,
       authPubKey: cosignerCtx1.authPubKey.toString('hex'),
       joinSignature: cosignerCtx1.joinSignature.toString('hex'),
-      key: cosignerCtx1.accountKey.toJSON(network)
+      accountKey: cosignerCtx1.xpub,
+      data: cosignerCtx1.data.toString('hex'),
+      purpose: cosignerCtx1.purpose,
+      fingerPrint: cosignerCtx1.fingerPrint
     });
 
-    assert.strictEqual(cosigners[1].token, options.token);
+    assert.strictEqual(cosigners[1].token, options.cosigner.token);
 
     testWalletClient2 = new MultisigClient({
       port: network.walletPort,
@@ -293,17 +296,15 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
 
     assert.deepStrictEqual(cosigners[1], {
       id: 1,
-      name: options.cosignerName,
-      token: options.token,
+      name: options.cosigner.name,
+      token: options.cosigner.token,
       tokenDepth: 0,
-      data: options.cosignerData,
-      authPubKey: options.authPubKey,
+      authPubKey: options.cosigner.authPubKey,
       joinSignature: options.joinSignature,
-      fingerPrint: options.cosignerFingerPrint,
-      purpose: options.cosignerPurpose,
-      key: {
-        xpubkey: options.accountKey
-      }
+      accountKey: options.cosigner.accountKey,
+      data: options.cosigner.data,
+      purpose: options.cosigner.purpose,
+      fingerPrint: options.cosigner.fingerPrint
     });
   });
 
@@ -323,14 +324,20 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
         name: cosignerCtx1.name,
         authPubKey: cosignerCtx1.authPubKey.toString('hex'),
         joinSignature: cosignerCtx1.joinSignature.toString('hex'),
-        key: cosignerCtx1.accountKey.toJSON(network)
+        accountKey: cosignerCtx1.xpub,
+        data: cosignerCtx1.data.toString('hex'),
+        purpose: cosignerCtx1.purpose,
+        fingerPrint: cosignerCtx1.fingerPrint
       },
       {
         id: 1,
         name: cosignerCtx2.name,
         authPubKey: cosignerCtx2.authPubKey.toString('hex'),
         joinSignature: cosignerCtx2.joinSignature.toString('hex'),
-        key: cosignerCtx2.accountKey.toJSON(network)
+        accountKey: cosignerCtx2.xpub,
+        data: cosignerCtx2.data.toString('hex'),
+        purpose: cosignerCtx2.purpose,
+        fingerPrint: cosignerCtx2.fingerPrint
       }
     ]);
 
@@ -572,7 +579,10 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
       name: cosignerCtx2.name,
       authPubKey: cosignerCtx2.authPubKey.toString('hex'),
       joinSignature: cosignerCtx2.joinSignature.toString('hex'),
-      key: cosignerCtx2.accountKey.toJSON(network)
+      accountKey: cosignerCtx2.xpub,
+      data: cosignerCtx2.data.toString('hex'),
+      purpose: cosignerCtx2.purpose,
+      fingerPrint: cosignerCtx2.fingerPrint
     });
 
     assert.strictEqual(proposal.memo, 'proposal1');
@@ -592,7 +602,10 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
       name: cosignerCtx2.name,
       authPubKey: cosignerCtx2.authPubKey.toString('hex'),
       joinSignature: cosignerCtx2.joinSignature.toString('hex'),
-      key: cosignerCtx2.accountKey.toJSON(network)
+      accountKey: cosignerCtx2.xpub,
+      data: cosignerCtx2.data.toString('hex'),
+      purpose: cosignerCtx2.purpose,
+      fingerPrint: cosignerCtx2.fingerPrint
     });
   });
 
@@ -690,7 +703,10 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
         name: cosignerCtx1.name,
         authPubKey: cosignerCtx1.authPubKey.toString('hex'),
         joinSignature: cosignerCtx1.joinSignature.toString('hex'),
-        key: cosignerCtx1.accountKey.toJSON(network)
+        accountKey: cosignerCtx1.xpub,
+        data: cosignerCtx1.data.toString('hex'),
+        purpose: cosignerCtx1.purpose,
+        fingerPrint: cosignerCtx1.fingerPrint
       });
     }
 
@@ -741,7 +757,10 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
       name: cosignerCtx1.name,
       authPubKey: cosignerCtx1.authPubKey.toString('hex'),
       joinSignature: cosignerCtx1.joinSignature.toString('hex'),
-      key: cosignerCtx1.accountKey.toJSON(network)
+      accountKey: cosignerCtx1.xpub,
+      data: cosignerCtx1.data.toString('hex'),
+      purpose: cosignerCtx1.purpose,
+      fingerPrint: cosignerCtx1.fingerPrint
     });
 
     assert.strictEqual(proposal.statusCode, Proposal.status.PROGRESS);
@@ -810,7 +829,10 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
       name: cosignerCtx1.name,
       authPubKey: cosignerCtx1.authPubKey.toString('hex'),
       joinSignature: cosignerCtx1.joinSignature.toString('hex'),
-      key: cosignerCtx1.accountKey.toJSON(network)
+      accountKey: cosignerCtx1.xpub,
+      data: cosignerCtx1.data.toString('hex'),
+      purpose: cosignerCtx1.purpose,
+      fingerPrint: cosignerCtx1.fingerPrint
     };
 
     for (const [wid, result] of eventResults) {
@@ -876,14 +898,20 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
         name: cosignerCtx1.name,
         authPubKey: cosignerCtx1.authPubKey.toString('hex'),
         joinSignature: cosignerCtx1.joinSignature.toString('hex'),
-        key: cosignerCtx1.accountKey.toJSON(network)
+        accountKey: cosignerCtx1.xpub,
+        data: cosignerCtx1.data.toString('hex'),
+        purpose: cosignerCtx1.purpose,
+        fingerPrint: cosignerCtx1.fingerPrint
       },
       1: {
         id: 1,
         name: cosignerCtx2.name,
         authPubKey: cosignerCtx2.authPubKey.toString('hex'),
         joinSignature: cosignerCtx2.joinSignature.toString('hex'),
-        key: cosignerCtx2.accountKey.toJSON(network)
+        accountKey: cosignerCtx2.xpub,
+        data: cosignerCtx2.data.toString('hex'),
+        purpose: cosignerCtx2.purpose,
+        fingerPrint: cosignerCtx2.fingerPrint
       }
     };
 

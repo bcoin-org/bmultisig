@@ -83,21 +83,24 @@ Params (example):
   "m": 2,
   "n": 2,
 
-  // this token will be used for authentication.
-  "token": "0101010101010101010101010101010101010101010101010101010101010101",
+  "cosigner": {
+    // this token will be used for authentication.
+    "token": "0101010101010101010101010101010101010101010101010101010101010101",
 
-  "cosignerName": "cosigner1",
-  "cosignerPurpose": 44,
-  // master key fingerprint (not xpub)
-  "cosignerFingerPrint": 2654134519,
-  // you can put additional data up to 100 bytes.
-  "cosignerData": "63636363636363636363",
-  // base58 encoded account key. (for example, derived as m/44'/0'/0')
-  "accountKey": "rpubKBBSxApoKWuxYnNo3YUULJxV1LVT3nawafxrfch37rUn8v1xyt6m6METTUVRy5gMSFnUoheCe6Mba2J1iqxrb1hnDo8ndNVLG7wvc4juT42Y",
-  // check signing document: Wallet Joining.
-  "accountKeyProof": "20a304942c61b3bb7e357a18485ed210a291d8c76354f84b6ef191a421fe2800a362e24c0b9b7184ba098e9eaa6cdb9c72eeecac37d0e46bb124f55be24d521e37",
-  // public key that will be used for signing and verifying: proposal rejection and creation signatures.
-  "authPubKey": "03fff6ec2e4bb4d2f99b8e9c9bfdc6a72126424714e79a5a5ff42948bee3324099",
+    "name": "cosigner1",
+    "purpose": 44,
+    // master key fingerprint (not xpub)
+    "fingerPrint": 2654134519,
+    // you can put additional data up to 100 bytes.
+    "data": "63636363636363636363",
+    // base58 encoded account key. (for example, derived as m/44'/0'/0')
+    "accountKey": "rpubKBBSxApoKWuxYnNo3YUULJxV1LVT3nawafxrfch37rUn8v1xyt6m6METTUVRy5gMSFnUoheCe6Mba2J1iqxrb1hnDo8ndNVLG7wvc4juT42Y",
+    // check signing document: Wallet Joining.
+    "accountKeyProof": "20a304942c61b3bb7e357a18485ed210a291d8c76354f84b6ef191a421fe2800a362e24c0b9b7184ba098e9eaa6cdb9c72eeecac37d0e46bb124f55be24d521e37",
+    // public key that will be used for signing and verifying: proposal rejection and creation signatures.
+    "authPubKey": "03fff6ec2e4bb4d2f99b8e9c9bfdc6a72126424714e79a5a5ff42948bee3324099",
+  },
+
   // signature of the data mentioned above using joinPrivateKey.
   "joinSignature": "1fd52de8fe2ebcebdd630035702e3b6d719222b999fe750c84a92faa9c4460494f442051d0bc071205f24dad6a68d766216269af00f23967a3d767cc6d4e0c6c82",
   // public key of joinPrivateKey.
@@ -132,9 +135,7 @@ HTTP Response:
       "name": "cosigner1",
       "authPubKey": "0388f1eb6e232e98c6354383cb5130a56015fab1fb43eef2bd17f6511ccc0d9a9e",
       "joinSignature": "20f6e7874b0977a5e148ccbbf39453772b5765a3aadfa1f6212bb1620e4fc1795337f965ff9b0417da473e617855b3ae432582f66b0d725acba90825a6da4cc71a",
-      "key": {
-        "xpubkey": "rpubKBB83sbxiyok5kWNmvHiMmkRpHXWh39WYLuU1zfYwjdhZVwasc4CuHnMrqoUpjAppNyVAw2MUzACiGpge8ZRuaED9QJsbh9fgHdbXLbDHsPe"
-      },
+      "accountKey": "rpubKBB83sbxiyok5kWNmvHiMmkRpHXWh39WYLuU1zfYwjdhZVwasc4CuHnMrqoUpjAppNyVAw2MUzACiGpge8ZRuaED9QJsbh9fgHdbXLbDHsPe",
       "purpose": 44,
       "fingerPrint": 3664892090,
       "data": "63636363636363636363",
@@ -152,14 +153,17 @@ For details check wallet creation endpoint.
 Params:
 ```json5
 {
-  "cosignerName": "cosigner2",
-  "cosignerPurpose": 44,
-  "cosignerFingerPrint": 2698755706,
-  "cosignerData": "",
-  "token": "0202020202020202020202020202020202020202020202020202020202020202",
-  "accountKey": "rpubKBAS32yftCYdYvWgXxEEH7upohWFsXP3dwp1eCNA9R7vYwVoes8bSv4NxPwsuJ4puBRCJWRSUxe1MPqYV78UtdkpGdeue5mG66yM2QGGbXmJ",
-  "accountKeyProof": "20d8baaec98fe57054e2c131c01a5f83774ff7acdbb2966ffc0e186dd3595a461a52d217bbeff61d6107dfc30a8dcc9099dfd7c9ff9da288d0f326af863e40a296",
-  "authPubKey": "03bdccfe18655a3fcba674227d0b9f383e49ade32791b140a6181b596e378ec4bf",
+  "cosigner": {
+    "name": "cosigner2",
+    "purpose": 44,
+    "fingerPrint": 2698755706,
+    "data": "",
+    "token": "0202020202020202020202020202020202020202020202020202020202020202",
+    "accountKey": "rpubKBAS32yftCYdYvWgXxEEH7upohWFsXP3dwp1eCNA9R7vYwVoes8bSv4NxPwsuJ4puBRCJWRSUxe1MPqYV78UtdkpGdeue5mG66yM2QGGbXmJ",
+    "accountKeyProof": "20d8baaec98fe57054e2c131c01a5f83774ff7acdbb2966ffc0e186dd3595a461a52d217bbeff61d6107dfc30a8dcc9099dfd7c9ff9da288d0f326af863e40a296",
+    "authPubKey": "03bdccfe18655a3fcba674227d0b9f383e49ade32791b140a6181b596e378ec4bf",
+  },
+
   "joinSignature": "1fbd7825512a1352a461552ddc9349ad98ffbc0c543d4aac40e85b0eb38ac795967034472a1fd3b2578e3ff953a1852c90c4e7313d30c4d70185cfd36b6980c442"
 }
 ```
@@ -190,18 +194,17 @@ HTTP Response
       "name": "cosigner1",
       "authPubKey": "02348755bfeae058de77918f09c7f31397333715b83303014eeb36be0ac57f2310",
       "joinSignature": "2077152bbab4ad2743af8619f085f3856258b255786b2083532cbe829855d9cbc551cab29777108f23d9385e4821d7e48c66a14eac6462469e06bb3e92995e9712",
-      "key": {
-        "xpubkey": "rpubKBAsBfPVMBBeBfD8F4EA5Dk1NAZ2dK7dc9JsE9dq9tDDF73NecpNP4z3gfMWuRm9rLVdSaeTj8BHZbVyHeRtV6UhciDz26pPDEntqCJvqKg2"
-      }
+      "accountKey": "rpubKBAsBfPVMBBeBfD8F4EA5Dk1NAZ2dK7dc9JsE9dq9tDDF73NecpNP4z3gfMWuRm9rLVdSaeTj8BHZbVyHeRtV6UhciDz26pPDEntqCJvqKg2",
+      "purpose": 44,
+      "fingerPrint": 3664892090,
+      "data": "63636363636363636363",
     },
     {
       "id": 1,
       "name": "cosigner2",
       "authPubKey": "0325e5fb974a2e12f954edb3dd6d851a43d6744784f2a41e12c1060aefb783a702",
       "joinSignature": "1fb393639c0f8279ef3377ff0c1bb9067474f41a4b4b7301a2814d64c6abd1fb446b48f361ec91d42d4c9dd589337e98cedc24762618bebed82c2d32e8244587f4",
-      "key": {
-        "xpubkey": "rpubKBB7QfFrX68MzrYd7FdcjSnZmg7sPRQzYKQuEfkJGF4BWV68qu23S4wvjwvo8b4sqRwUf7uNCWmDwghKFv6tPnGFjXaY4TXQw9QQTy5zcjfu"
-      },
+      "accountKey":  "rpubKBB7QfFrX68MzrYd7FdcjSnZmg7sPRQzYKQuEfkJGF4BWV68qu23S4wvjwvo8b4sqRwUf7uNCWmDwghKFv6tPnGFjXaY4TXQw9QQTy5zcjfu",
       "purpose": 44,
       "fingerPrint": 358396470,
       "data": "",
@@ -256,20 +259,22 @@ HTTP Response:
     {
       "id": 0,
       "name": "cosigner1",
-      "authPubKey": "02426235aa55df66059013d7f980646b8b4feb7d4d46bc5ed893b1b5b321bc102c",
-      "joinSignature": "20f12a4f4611ce4640a35cfd5140f9fe7abd8af5fb00a4483e4d7af2614b48817608d1260e287cad61257f29ec0a9e9110e94167dace9d81124a0808d20f686493",
-      "key": {
-        "xpubkey": "rpubKBAnBVSSUJcjuqh76ezAJapviiJN8R3WMm6HyBCGtsWcqg8hYRRJapp9oZmC1YnRKR24HaaAj5SVucbQhLkqeeCXqj3CAFFCGvDpQ8JSECxB"
-      }
+      "authPubKey": "02348755bfeae058de77918f09c7f31397333715b83303014eeb36be0ac57f2310",
+      "joinSignature": "2077152bbab4ad2743af8619f085f3856258b255786b2083532cbe829855d9cbc551cab29777108f23d9385e4821d7e48c66a14eac6462469e06bb3e92995e9712",
+      "accountKey": "rpubKBAsBfPVMBBeBfD8F4EA5Dk1NAZ2dK7dc9JsE9dq9tDDF73NecpNP4z3gfMWuRm9rLVdSaeTj8BHZbVyHeRtV6UhciDz26pPDEntqCJvqKg2",
+      "purpose": 44,
+      "fingerPrint": 3664892090,
+      "data": "63636363636363636363"
     },
     {
       "id": 1,
       "name": "cosigner2",
-      "authPubKey": "026c1d0847865db3fd1ffc60736aba410fd5b8163db88ec2190aebc8820c0c7a6a",
-      "joinSignature": "20f5540913dca8c3524e0b098202dc778565786ec873ac0ba7cf9e870f503a4c564140e9613d519e380fe0c9e0271edce0e0c2ade512aeb251f5a444102c33af4b",
-      "key": {
-        "xpubkey": "rpubKBBcvkdMvH7i4g55UUfAYM2hM2b36Sb31fsnv4J4RmAD2DbKvCGvRnXKScMYZZkjjVHXKb6gRcD2GCP6bjKwmzT5knePn2dWHT6GvJULcwWs"
-      }
+      "authPubKey": "0325e5fb974a2e12f954edb3dd6d851a43d6744784f2a41e12c1060aefb783a702",
+      "joinSignature": "1fb393639c0f8279ef3377ff0c1bb9067474f41a4b4b7301a2814d64c6abd1fb446b48f361ec91d42d4c9dd589337e98cedc24762618bebed82c2d32e8244587f4",
+      "accountKey":  "rpubKBB7QfFrX68MzrYd7FdcjSnZmg7sPRQzYKQuEfkJGF4BWV68qu23S4wvjwvo8b4sqRwUf7uNCWmDwghKFv6tPnGFjXaY4TXQw9QQTy5zcjfu",
+      "purpose": 44,
+      "fingerPrint": 358396470,
+      "data": ""
     }
   ]
 }
@@ -313,9 +318,7 @@ HTTP Response:
   "name": "cosigner1",
   "authPubKey": "033a0107dd9ecbc720d26dacca1a16d1e3678f03633a9d27542266e50dced1d657",
   "joinSignature": "20c32ef0653db6369f66d20ce72250807a19dcd955affa0f4c815e4d229ba8d0105c2f4ba3fa0771d8dd9418da02206cead4cbc0ea0ee51bb68a2d14b699b4bcb0",
-  "key": {
-    "xpubkey": "rpubKBAVZYL2jVQnKHyvWXDji7ZFtK7T5V5qJ3KhZZnRNLASNwamupMFM6VkWzxaAFGTUYQkQjsVKMbm1s2NQD19yejH6AJFDWuAss9B6B9REtJG"
-  },
+  "accountKey": "rpubKBAVZYL2jVQnKHyvWXDji7ZFtK7T5V5qJ3KhZZnRNLASNwamupMFM6VkWzxaAFGTUYQkQjsVKMbm1s2NQD19yejH6AJFDWuAss9B6B9REtJG",
   "purpose": 44,
   "fingerPrint": 516910651,
   "data": "63636363636363636363",
@@ -390,27 +393,29 @@ HTTP Response:
       "0": {
         "id": 0,
         "name": "cosigner1",
-        "authPubKey": "0299d40a220f120b82f5ce33cd16316eff65f643dd975ed770a92a2bb73b43e8cb",
-        "joinSignature": "2064790a4a45a00e38c558178163a8078d40166afbe9036fc9b035a0f85dd727d6319ae18e1c262f5acf9dcf42acd561e88877479e3b351884a78aa81a55bf8582",
-        "key": {
-          "xpubkey": "rpubKBACgy4cAdXLpPQdgsnEJKNgxQfWce3eBNuGPi4rYBHbZLgLwhfExMMjjUQpTp8akyAfepMNTiEYnyoFW55y9PvJrmr4Xwo4omNfdntyrNPB"
-        }
+        "authPubKey": "02348755bfeae058de77918f09c7f31397333715b83303014eeb36be0ac57f2310",
+        "joinSignature": "2077152bbab4ad2743af8619f085f3856258b255786b2083532cbe829855d9cbc551cab29777108f23d9385e4821d7e48c66a14eac6462469e06bb3e92995e9712",
+        "accountKey": "rpubKBAsBfPVMBBeBfD8F4EA5Dk1NAZ2dK7dc9JsE9dq9tDDF73NecpNP4z3gfMWuRm9rLVdSaeTj8BHZbVyHeRtV6UhciDz26pPDEntqCJvqKg2",
+        "purpose": 44,
+        "fingerPrint": 3664892090,
+        "data": "63636363636363636363"
       },
       "1": {
         "id": 1,
         "name": "cosigner2",
-        "authPubKey": "02b0395757ed7ac2918fe55a0557da25000a821cd97a583679d6f961eb0ab968a5",
-        "joinSignature": "20553d629a5273265da04f692ccb0934f5cb69db6eabab4d3dca0c24c0ac9ec8c97f25af6632a2ba1d40284c083f04f54979d561258dbd98e849091e45a4d7a130",
-        "key": {
-          "xpubkey": "rpubKBBZXj2Z9V15XTXMeqffkaWEctJs27S5he5QmDEDnF7mUGmiga5QARcAE9HEuWRgqv3bPHeG8DKsdP3b3XoRoJPYNVdEuES7oexuLTYrx4sx"
-        }
+        "authPubKey": "0325e5fb974a2e12f954edb3dd6d851a43d6744784f2a41e12c1060aefb783a702",
+        "joinSignature": "1fb393639c0f8279ef3377ff0c1bb9067474f41a4b4b7301a2814d64c6abd1fb446b48f361ec91d42d4c9dd589337e98cedc24762618bebed82c2d32e8244587f4",
+        "accountKey":  "rpubKBB7QfFrX68MzrYd7FdcjSnZmg7sPRQzYKQuEfkJGF4BWV68qu23S4wvjwvo8b4sqRwUf7uNCWmDwghKFv6tPnGFjXaY4TXQw9QQTy5zcjfu",
+        "purpose": 44,
+        "fingerPrint": 358396470,
+        "data": ""
       }
     }
   }]
 }
 ```
 
-#### PUT /:id/proposal
+#### POST /:id/proposal
 *Cosigner authentication.*
 
 Create proposal.
@@ -498,20 +503,22 @@ HTTP Response:
     "0": {
       "id": 0,
       "name": "cosigner1",
-      "authPubKey": "038f3a88a38d5a9e860f9546924053cd2f124d64527b65b98a0fd355918684d6d7",
-      "joinSignature": "1f486c115160c792075302aec618bbef4422ca80067a78432ca8957c90c2f742d119fd25d3a1a1d35a0100f8db1a828f7559d5afbb51b32f060fe5431d0e888937",
-      "key": {
-        "xpubkey": "rpubKBAc7hnnCrZgeBNDAMHJuBn6XJjoWCzx6wNPaPzfdegFb8h2w8R9rkqbDH3KBsGao8U4dGFPTfpF4s7nwEejMwVnyutzswXcCa3bQmSgU43G"
-      }
+      "authPubKey": "02348755bfeae058de77918f09c7f31397333715b83303014eeb36be0ac57f2310",
+      "joinSignature": "2077152bbab4ad2743af8619f085f3856258b255786b2083532cbe829855d9cbc551cab29777108f23d9385e4821d7e48c66a14eac6462469e06bb3e92995e9712",
+      "accountKey": "rpubKBAsBfPVMBBeBfD8F4EA5Dk1NAZ2dK7dc9JsE9dq9tDDF73NecpNP4z3gfMWuRm9rLVdSaeTj8BHZbVyHeRtV6UhciDz26pPDEntqCJvqKg2",
+      "purpose": 44,
+      "fingerPrint": 3664892090,
+      "data": "63636363636363636363"
     },
     "1": {
       "id": 1,
       "name": "cosigner2",
-      "authPubKey": "02a72d6dfc0ce12cdf77967a57a47258aee7ea0112cf683c9e650b547809c1cabb",
-      "joinSignature": "1f49d41867126627919e0a65e83f4e767566983446a5ab2ae8a918fcc363a9f2be4a4d0358853f59ea4950207a3a575ba029a939ff12679a93779b01d5d42f3c47",
-      "key": {
-        "xpubkey": "rpubKBAdFmQCZiurtzXBV7PfjaPkaLYDJvVtM3wtbA4ny7Vn7Pb8DkUXHvDE81eJPE8fyBag8e2mwjbxEbhGhhLcfra3K44CFKmGhsfFQ9gLW7nY"
-      }
+      "authPubKey": "0325e5fb974a2e12f954edb3dd6d851a43d6744784f2a41e12c1060aefb783a702",
+      "joinSignature": "1fb393639c0f8279ef3377ff0c1bb9067474f41a4b4b7301a2814d64c6abd1fb446b48f361ec91d42d4c9dd589337e98cedc24762618bebed82c2d32e8244587f4",
+      "accountKey":  "rpubKBB7QfFrX68MzrYd7FdcjSnZmg7sPRQzYKQuEfkJGF4BWV68qu23S4wvjwvo8b4sqRwUf7uNCWmDwghKFv6tPnGFjXaY4TXQw9QQTy5zcjfu",
+      "purpose": 44,
+      "fingerPrint": 358396470,
+      "data": ""
     }
   }
 }
@@ -571,20 +578,22 @@ HTTP Response:
     "0": {
       "id": 0,
       "name": "cosigner1",
-      "authPubKey": "023c44b31a64fb7eb57daccfe331e83fd9b449392d690de87d5646e7df026ecc6c",
-      "joinSignature": "1fa0ca828e1e77d740c2b993436ce2ac40effa737ce25e3b7bf846f87e26595401040e955b09e4c1c4f6400ad95669ae48f8c3aa9df70050da773780bb1f168887",
-      "key": {
-        "xpubkey": "rpubKBAF8wngd5P7RM4XRn7d3BcDuQqZ3q4kFZfX3N41evZQZermv9PfnFuF1fVPANXAYcVx53bKpggPJ2N4FgQFSjdduSjP2o3KwECXPbAgtGs6"
-      }
+      "authPubKey": "02348755bfeae058de77918f09c7f31397333715b83303014eeb36be0ac57f2310",
+      "joinSignature": "2077152bbab4ad2743af8619f085f3856258b255786b2083532cbe829855d9cbc551cab29777108f23d9385e4821d7e48c66a14eac6462469e06bb3e92995e9712",
+      "accountKey": "rpubKBAsBfPVMBBeBfD8F4EA5Dk1NAZ2dK7dc9JsE9dq9tDDF73NecpNP4z3gfMWuRm9rLVdSaeTj8BHZbVyHeRtV6UhciDz26pPDEntqCJvqKg2",
+      "purpose": 44,
+      "fingerPrint": 3664892090,
+      "data": "63636363636363636363"
     },
     "1": {
       "id": 1,
       "name": "cosigner2",
-      "authPubKey": "02cd894a48974880e1c2e4350bb66f1713592eb6a5f6a16c468dd25572a93196b6",
-      "joinSignature": "20230980000decaf8d86a667f26d7eff4c0dceeddbafa086e60e50da8415f4f42d34e7910e4599fe94efb8b1f2d56d01d466f07d343eb3563a5baa715199a11302",
-      "key": {
-        "xpubkey": "rpubKBBkwahsY6RVpKknqcSAhkU9STvLStpkQsbQqDUspuNGctrmzJ3Ew864QWgzpohQU3Xr4Dikqomkkspy2rPxTmTyiDW3jcMQUdTPY17HfK1Y"
-      }
+      "authPubKey": "02348755bfeae058de77918f09c7f31397333715b83303014eeb36be0ac57f2310",
+      "joinSignature": "2077152bbab4ad2743af8619f085f3856258b255786b2083532cbe829855d9cbc551cab29777108f23d9385e4821d7e48c66a14eac6462469e06bb3e92995e9712",
+      "accountKey": "rpubKBAsBfPVMBBeBfD8F4EA5Dk1NAZ2dK7dc9JsE9dq9tDDF73NecpNP4z3gfMWuRm9rLVdSaeTj8BHZbVyHeRtV6UhciDz26pPDEntqCJvqKg2",
+      "purpose": 44,
+      "fingerPrint": 3664892090,
+      "data": ""
     }
   }
 }
