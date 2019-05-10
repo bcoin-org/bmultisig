@@ -3,6 +3,15 @@ Bmultisig CHANGELOG and notes.
 
 ## 2.0.0-beta.1
 
+### API Changes
+All endpoints have updated cosigner object
+that now are all consistent with all responses.
+
+Also Cosigner meta-data (`purpose`, `fingerPrint`, and `data`)
+now always return for each cosigner.
+
+See Docs: [HTTP API](./docs/http.md)
+
 #### Other
 node.js version check: `>=8.0.0` and `<12.0.0`.
 
