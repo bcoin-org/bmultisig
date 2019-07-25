@@ -20,11 +20,11 @@ const accountPublicKey = accountPrivateKey.toPublic();
 
 const TEST_OPTIONS = {
   id: 5,
-  tokenDepth: 0,
+  tokenDepth: 1,
   token: Buffer.alloc(32),
   name: 'test1',
-  purpose: 0,
-  fingerPrint: 0,
+  purpose: 44,
+  fingerPrint: 100,
   key: accountPublicKey,
   authPubKey: secp256k1.publicKeyCreate(privKey, true),
   joinSignature: Buffer.alloc(65, 1),
@@ -34,11 +34,11 @@ const TEST_OPTIONS = {
 // its serialization
 const TEST_RAW = Buffer.from(
   '05' // id
-  + '00000000' // tokenDepth
+  + '01000000' // tokenDepth
   + TEST_OPTIONS.token.toString('hex') // token
   + '05' + '7465737431' // name
-  + '00000000' // purpose
-  + '00000000' // fingerPrint
+  + '0000002c' // purpose
+  + '00000064' // fingerPrint
   + '0f' + '6d2f3434272f30272f30272f302f30' // data
   + TEST_OPTIONS.key.toRaw(NETWORK).toString('hex')
   + TEST_OPTIONS.authPubKey.toString('hex')
