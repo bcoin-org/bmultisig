@@ -423,7 +423,7 @@ HTTP Response:
 }
 ```
 
-#### POST /:id/proposal
+#### POST /multisig/:id/proposal
 *Cosigner authentication.*
 
 Create proposal.
@@ -678,7 +678,7 @@ HTTP Response:
 }
 ```
 
-#### POST /:id/proposal/:name/approve
+#### POST /multisig/:id/proposal/:name/approve
 *Cosigner authentication.*
 
 Approve with signatures, this will verify signatures when submitted.
@@ -754,7 +754,7 @@ HTTP Response:
 
 ```
 
-#### POST /:id/proposal/:name/reject
+#### POST /multisig/:id/proposal/:name/reject
 *Cosigner or Admin authentication.*
 
 Reject proposal. In order to reject proposal, cosigner needs
@@ -877,6 +877,96 @@ HTTP Reponse:
   "statusMessage": "Proposal is in progress.",
   "cosignerDetails": {}
 }
+```
+
+### Import/Export
+ You can import and export wallets from the multisigdb with admin token.
+HTTP Endpoints return JSON serialized object, but they can be serialized
+in Binary format as well, using serializers from `/lib/export.js`.
+
+#### GET /multisig/:id/export
+*Admin authorization.*
+
+```javascript
+await client.export(id);
+```
+
+HTTP Response:
+
+```json5
+{
+  "watchOnly": true,
+  "accountDepth": 1,
+  "tokenDepth": 0,
+  "token": "1111111111111111111111111111111111111111111111111111111111111111",
+  "master": "003e04334be01bfa16e233a073d39172060f41f9c60ff4c9cd76b84a80aa74c8847bdb11e514aae4ac284a9b4f8544dfa61a2bcac17f536383122796ec464a438f018000028a85e0467678fc2499e375a76ecbc3dc",
+  "joinPubKey": "0308c749ece3230fca2a324623963c6ec20c4be9056b0d0089ecb95f1bfbb29396",
+  "timestamp": 1564595915,
+  "accounts": [
+    {
+      "name": "default",
+      "witness": true,
+      "initialized": true,
+      "watchOnly": true,
+      "type": "multisig",
+      "m": 2,
+      "n": 2,
+      "accountIndex": 0,
+      "receiveDepth": 1,
+      "changeDepth": 1,
+      "nestedDepth": 1,
+      "lookahead": 11,
+      "accountKey": "rpubKBBV6Y2asgWUBVPmPfaBdufC4RxMoB2HYBxi1bN9bW9Pyodf5TWAJeog7NBsradD5MHe9M7RWkK6p5ZGir6iVHUiQdVSVrKVSU19xYmVQMLV",
+      "keys": [
+        "rpubKBBvERPndYY5wx6ibRr7JpsABertsCGLPDkk55TvMpKqtJku89WngaNickRxy6hrRmmzVmByFg1ocKiHmNas4m6RpeTmH7Uzwh9HdKC5fxqW"
+      ]
+    }
+  ],
+  "cosigners": [
+    {
+      "id": 0,
+      "name": "cosigner1",
+      "data": "63636363636363636363",
+      "purpose": 44,
+      "fingerPrint": 891844849,
+      "accountKey": "rpubKBBV6Y2asgWUBVPmPfaBdufC4RxMoB2HYBxi1bN9bW9Pyodf5TWAJeog7NBsradD5MHe9M7RWkK6p5ZGir6iVHUiQdVSVrKVSU19xYmVQMLV",
+      "authPubKey": "02bad879395e171121982a397d0a8fafb3063eea61d6984824798c08bc85add085",
+      "joinSignature": "2043d1dfd38115082cd78a7de23d6a2e9a5ccc437022ebc07c8e81e57d8f1797be292683aeea5d43c3f25ff0976718ae0b080f4e132f7084630c4b5b7a3d74a99a",
+      "token": "0101010101010101010101010101010101010101010101010101010101010101",
+      "tokenDepth": 0
+    },
+    {
+      "id": 1,
+      "name": "cosigner2",
+      "data": "",
+      "purpose": 44,
+      "fingerPrint": 2264922574,
+      "accountKey": "rpubKBBvERPndYY5wx6ibRr7JpsABertsCGLPDkk55TvMpKqtJku89WngaNickRxy6hrRmmzVmByFg1ocKiHmNas4m6RpeTmH7Uzwh9HdKC5fxqW",
+      "authPubKey": "0203c12bbb10cd45afde168b548765106f8255e43142d1250a1551496d31e23b17",
+      "joinSignature": "2020342880c3db62e49b6450ce1f55f7334ce5185d6e49e3ae9c2ebe078c82b7f0365e4097fc68ec413606cf3158005daa935941b4a3f36bffee25936b2e25aa15",
+      "token": "0202020202020202020202020202020202020202020202020202020202020202",
+      "tokenDepth": 0
+    }
+  ]
+}
+```
+
+#### POST /multisig/import
+*Admin authorization.*
+
+Params:
+```json5
+{
+  "id": "wallet-name",
+  "importOptions": {
+    // Same object as returned by export.
+  }
+}
+```
+
+HTTP Response:
+```json5
+  // Same response as Create Wallet.
 ```
 
 [signing]: ./signing.md
