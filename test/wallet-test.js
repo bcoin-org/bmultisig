@@ -657,7 +657,6 @@ describe('MultisigWallet', function () {
     it('should export wallet', async () => {
       const info = await msdb.export(WALLET_OPTIONS.id);
 
-      assert.strictEqual(info.id, WALLET_OPTIONS.id);
       assert.strictEqual(info.watchOnly, true);
       assert.strictEqual(info.tokenDepth, 0);
       assert.bufferEqual(info.token, Buffer.alloc(32, 0));
@@ -674,7 +673,7 @@ describe('MultisigWallet', function () {
       info.id = wname;
 
       const mswallet1 = await msdb.getWallet(WALLET_OPTIONS.id);
-      const mswallet2 = await msdb.import(info);
+      const mswallet2 = await msdb.import(wname, info);
 
       {
         // Check exports.

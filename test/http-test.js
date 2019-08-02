@@ -318,9 +318,9 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
     const walletName = WALLET_OPTIONS.id;
     const importedName = 'wallet-import';
     const json = await adminClient.export(walletName);
-    json.id = importedName;
 
-    await adminClient.import(json);
+    const mswallet = await adminClient.import(importedName, json);
+    assert(mswallet);
 
     const walletInfo = await adminClient.getInfo(walletName);
     const newWalletInfo = await adminClient.getInfo(importedName);
