@@ -600,6 +600,124 @@ describe('MultisigWallet', function () {
     assert.bufferEqual(newToken, token2);
     assert.deepStrictEqual(mswallet.cosigners[0], acosigner2);
   });
+
+  describe('import/export', function () {
+    let mswallet;
+
+    // have default wallet for each test.
+    beforeEach(async () => {
+      const cosignerCtx1 = new CosignerCtx({
+        walletName: WALLET_OPTIONS.id,
+        name: 'cosigner1'
+      });
+
+      const cosignerCtx2 = new CosignerCtx({
+        walletName: WALLET_OPTIONS.id,
+        name: 'cosigner2',
+        joinPrivKey: cosignerCtx1.joinPrivKey
+      });
+
+      const cosigner1 = cosignerCtx1.toCosigner();
+      const cosigner2 = cosignerCtx2.toCosigner();
+
+      const walletOptions = {
+        joinPubKey: cosignerCtx1.joinPubKey,
+        ...WALLET_OPTIONS
+      };
+
+      mswallet = await msdb.create(walletOptions, cosigner1);
+
+      await mswallet.join(cosigner2);
+    });
+
+    it('should fail exporting uninitialized wallet', async () => {
+      const wid = 'export-uninitialized';
+      const cosignerCtx = new CosignerCtx({
+        walletName: wid,
+        name: 'cosigner'
+      });
+
+      const cosigner = cosignerCtx.toCosigner();
+      const walletOptions = {
+        id: wid,
+        m: 2,
+        n: 2,
+        joinPubKey: cosignerCtx.joinPubKey
+      };
+
+      await msdb.create(walletOptions, cosigner);
+
+      assert.rejects(async () => {
+        await msdb.export(wid);
+      }, {
+        message: /init/
+      });
+    });
+
+    it('should export wallet', async () => {
+      const info = await msdb.export(WALLET_OPTIONS.id);
+
+      assert.strictEqual(info.id, WALLET_OPTIONS.id);
+      assert.strictEqual(info.watchOnly, true);
+      assert.strictEqual(info.tokenDepth, 0);
+      assert.bufferEqual(info.token, Buffer.alloc(32, 0));
+      assert.strictEqual(typeof info.master, 'object');
+      assert(Array.isArray(info.accounts));
+      assert.strictEqual(info.accounts.length, 1);
+      assert(Array.isArray(info.cosigners));
+      assert.strictEqual(info.cosigners.length, 2);
+    });
+
+    it('should import wallet', async () => {
+      const wname = 'import-wallet';
+      const info = await msdb.export(WALLET_OPTIONS.id);
+      info.id = wname;
+
+      const mswallet1 = await msdb.getWallet(WALLET_OPTIONS.id);
+      const mswallet2 = await msdb.import(info);
+
+      {
+        // Check exports.
+        const info2 = await msdb.export(wname);
+
+        assert.deepStrictEqual(
+          info2.cosigners[1],
+          info.cosigners[1]
+        );
+      }
+
+      {
+        // Check MultisigWallets.
+        const msjson1 = mswallet1.toJSON();
+        const msjson2 = mswallet2.toJSON();
+
+        // ID and WID will be different.
+        assert(msjson1.id !== msjson2.id);
+        assert(msjson1.wid !== msjson2.wid);
+        msjson1.id = msjson2.id;
+        msjson1.wid = msjson2.wid;
+
+        assert.deepStrictEqual(msjson2, msjson1);
+      }
+
+      {
+        // Check BWallet wallets.
+        const wallet1 = await wdb.get(WALLET_OPTIONS.id);
+        const wallet2 = await wdb.get(wname);
+
+        const json1 = wallet1.toJSON();
+        const json2 = wallet2.toJSON();
+
+        // ID and WID will be different.
+        assert(json1.id !== json2.id);
+        assert(json1.wid !== json2.wid);
+        json1.id = json2.id;
+        json1.wid = json2.wid;
+
+        assert.deepStrictEqual(json2, json1);
+      }
+    });
+  });
 });
 
 /*
