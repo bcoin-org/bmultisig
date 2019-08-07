@@ -37,7 +37,8 @@ class CosignerContext {
     this._xpubProof = null;
     this._cosigner = null;
 
-    this.fromOptions(options);
+    if (options)
+      this.fromOptions(options);
   }
 
   fromOptions(options) {
@@ -97,15 +98,49 @@ class CosignerContext {
     }
 
     this.joinPrivKey = joinPrivKey;
-    this.joinPubKey = secp256k1.publicKeyCreate(this.joinPrivKey, true);
-
     this.authPrivKey = authPrivKey;
+    this.master = master;
+
+    this.init();
+  }
+
+  init() {
+    this.joinPubKey = secp256k1.publicKeyCreate(this.joinPrivKey, true);
     this.authPubKey = secp256k1.publicKeyCreate(this.authPrivKey, true);
 
-    this.master = master;
-    this.fingerPrint = getFingerprint(master);
+    this.fingerPrint = getFingerprint(this.master);
     this.accountPrivKey = this.master.deriveAccount(44, this.purpose, 0);
     this.accountKey = this.accountPrivKey.toPublic();
+  }
+
+  toJSON() {
+    return {
+      name: this.name,
+      walletName: this.walletName,
+      token: this.token.toString('hex'),
+      data: this.data.toString('hex'),
+      network: this.network.toString(),
+      master: this.master.xprivkey(this.network),
+      joinPrivKey: this.joinPrivKey.toString('hex'),
+      authPrivKey: this.authPrivKey.toString('hex'),
+      fingerPrint: this.fingerPrint
+    }
+  }
+
+  fromJSON(json) {
+    this.name = json.name;
+    this.walletName = json.walletName;
+    this.token = Buffer.from(json.token, 'hex');
+    this.data = Buffer.from(json.data, 'hex');
+    this.network = Network.get(json.network);
+    this.master = hd.PrivateKey.fromBase58(json.master, this.network);
+    this.joinPrivKey = Buffer.from(json.joinPrivKey, 'hex');
+    this.authPrivKey = Buffer.from(json.authPrivKey, 'hex');
+    this.fingerPrint = json.fingerPrint;
+
+    this.init();
+
+    return this;
   }
 
   get xpub() {
@@ -217,6 +252,7 @@ class CosignerContext {
       + `  walletName=${this.walletName}\n`
       + `  network=${this.network.type}\n`
       + `  master=${this.master.xprivkey(this.network)} \n`
+      + `  token=${this.token.toString('hex')} \n`
       + `  fingerPrint=${this.fingerPrint}\n`
       + `  purpose=${this.purpose}\n`
       + `  xpub=${this.xpub}\n`
@@ -234,6 +270,10 @@ class CosignerContext {
 
   static fromOptions(options) {
     return new this(options);
+  }
+
+  static fromJSON(json) {
+    return new this().fromJSON(json);
   }
 }
 
