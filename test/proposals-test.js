@@ -7,8 +7,6 @@ const assert = require('bsert');
 const walletUtils = require('./util/wallet');
 const testUtils = require('./util/utils');
 const CosignerCtx = require('./util/cosigner-context');
-
-// const Logger = require('blgr');
 const bcoin = require('bcoin');
 const {Script, KeyRing, MTX, Amount} = bcoin;
 const WalletDB = bcoin.wallet.WalletDB;
@@ -59,19 +57,11 @@ describe(`MultisigProposals ${WITNESS ? 'witness' : 'legacy'}`, function () {
   let cosigner1, cosigner2;
 
   beforeEach(async () => {
-    // const logger = new Logger({
-    //   level: 'debug',
-    //   console: true
-    // });
-
-    // await logger.open();
-
     wdb = new WalletDB({ });
 
     const wdbClient = new WalletNodeClient({ wdb });
 
     msdb = new MultisigDB({
-      // logger,
       client: wdbClient
     });
 
@@ -293,6 +283,42 @@ describe(`MultisigProposals ${WITNESS ? 'witness' : 'legacy'}`, function () {
     const proposal2 = await mkProposal(mswallet, cosignerCtx1, 1);
     assert.ok(proposal2 instanceof Proposal);
   });
+
+  describe('force reject proposal', function() {
+    let proposal;
+
+    beforeEach(async () => {
+      await walletUtils.fundWalletBlock(wdb, mswallet, 1);
+      proposal = await mkProposal(mswallet, cosignerCtx1, 1);
+    });
+
+    it('should force reject proposal', async () => {
+      const pid = proposal.id;
+      const rejectedProposal = await mswallet.forceRejectProposal(pid);
+
+      assert(rejectedProposal);
+      assert(rejectedProposal.status === Proposal.status.FORCE);
+
+      // we should be able to create new proposal
+      const p2 = await mkProposal(mswallet, cosignerCtx1, 1);
+
+      assert(p2);
+    });
+
+    it('should fail rejecting rejected proposal', async () => {
+      const signature = cosignerCtx1.signProposal(REJECT, proposal.options);
+      await mswallet.rejectProposal(proposal.id, cosigner1, signature);
+
+      const pid = proposal.id;
+
+      await assert.rejects(async () => {
+        await mswallet.forceRejectProposal(pid);
+      }, {
+        message: 'Proposal is not pending.'
+      });
+    });
+  });
+
 
   it('should fail rejecting rejected proposal', async () => {
     await walletUtils.fundWalletBlock(wdb, mswallet, 1);
