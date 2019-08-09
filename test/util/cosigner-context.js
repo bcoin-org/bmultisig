@@ -124,7 +124,7 @@ class CosignerContext {
       joinPrivKey: this.joinPrivKey.toString('hex'),
       authPrivKey: this.authPrivKey.toString('hex'),
       fingerPrint: this.fingerPrint
-    }
+    };
   }
 
   fromJSON(json) {

@@ -319,7 +319,6 @@ describe(`MultisigProposals ${WITNESS ? 'witness' : 'legacy'}`, function () {
     });
   });
 
-
   it('should fail rejecting rejected proposal', async () => {
     await walletUtils.fundWalletBlock(wdb, mswallet, 1);
 

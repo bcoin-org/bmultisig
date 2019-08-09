@@ -728,6 +728,57 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
     assert.strictEqual(proposal.rejections[0], signature.toString('hex'));
   });
 
+  it('should force reject proposal', async () => {
+    const txoptions = getTXOptions(5);
+    const proposalOptions = {
+      memo: 'proposal-force-reject',
+      timestamp: now(),
+      txoptions
+    };
+
+    const signature = cosignerCtx1.signProposal(CREATE, proposalOptions);
+    const proposal = await testWalletClient1.createProposal(
+      WALLET_OPTIONS.id,
+      {
+        proposal: proposalOptions,
+        signature: signature.toString('hex')
+      }
+    );
+
+    assert(proposal);
+    assert(proposal.statusCode === Proposal.status.PROGRESS);
+
+    const wid = WALLET_OPTIONS.id;
+    const pid = proposal.id;
+
+    await assert.rejects(async () => {
+      await testWalletClient1.forceRejectProposal(wid, pid);
+    }, {
+      message: 'Status code: 403.'
+    });
+
+    const rejectEvents = Promise.all([
+      waitForBind(testWalletClient1, 'proposal rejected'),
+      waitForBind(testWalletClient2, 'proposal rejected'),
+      waitForBind(adminClient, 'proposal rejected'),
+      waitForBind(walletAdminClient, 'proposal rejected')
+    ]);
+
+    // admin can reject.
+    const rejectedProposal = await adminClient.forceRejectProposal(wid, pid);
+
+    assert(rejectedProposal);
+    assert(rejectedProposal.statusCode === Proposal.status.FORCE);
+
+    const eventResults = await rejectEvents;
+
+    for (const [wid, result] of eventResults) {
+      assert.strictEqual(wid, WALLET_OPTIONS.id);
+      assert.deepStrictEqual(result.proposal, rejectedProposal);
+      assert.strictEqual(result.cosigner, null);
+    }
+  });
+
   it('should create another proposal using same coins', async () => {
     const txoptions = getTXOptions(5);
     const proposalOptions = {
