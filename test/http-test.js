@@ -644,6 +644,56 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
     assert(txinfo.tx);
   });
 
+  it('should fail getting proposal by non-existent coin', async () => {
+    const wid = WALLET_OPTIONS.id;
+    const hash = Buffer.alloc(32, 0).toString('hex');
+    const index = 0;
+
+    const proposal = await testWalletClient1.getProposalByCoin(
+      wid,
+      hash,
+      index
+    );
+
+    assert.strictEqual(proposal, null);
+  });
+
+  it('should get proposal by coin', async () => {
+    const txinfo = await testWalletClient1.getProposalMTX(
+      WALLET_OPTIONS.id,
+      pid1
+    );
+
+    const {hash, index} = txinfo.tx.inputs[0].prevout;
+
+    const clients = [
+      testWalletClient1,
+      testWalletClient2,
+      adminClient
+    ];
+
+    for (const client of clients) {
+      const proposal = await client.getProposalByCoin(
+        WALLET_OPTIONS.id,
+        hash,
+        index
+      );
+
+      assert(proposal);
+      assert.strictEqual(proposal.id, pid1);
+    }
+
+    await assert.rejects(async () => {
+      await multisigClient.getProposalByCoin(
+        WALLET_OPTIONS.id,
+        hash,
+        index
+      );
+    }, {
+      message: 'Authentication error.'
+    });
+  });
+
   it('should get proposal tx with input txs', async () => {
     const txinfo = await testWalletClient1.getProposalMTX(
       WALLET_OPTIONS.id,
