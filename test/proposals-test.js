@@ -134,7 +134,7 @@ describe(`MultisigProposals ${WITNESS ? 'witness' : 'legacy'}`, function () {
     assert.ok(mtx instanceof MTX);
 
     for (const coin of coins)
-      await mswallet.lockCoin(coin);
+      await mswallet.lockCoinTXDB(coin);
 
     let err;
     try {
@@ -148,7 +148,7 @@ describe(`MultisigProposals ${WITNESS ? 'witness' : 'legacy'}`, function () {
     assert.strictEqual(err.message, message);
 
     for (const coin of coins)
-      await mswallet.unlockCoin(coin);
+      await mswallet.unlockCoinTXDB(coin);
 
     const mtx2 = await mswallet.createTX(txoptions);
     assert(mtx2 instanceof MTX);
