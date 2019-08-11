@@ -320,6 +320,23 @@ describe(`MultisigProposals ${WITNESS ? 'witness' : 'legacy'}`, function () {
   });
 
   describe('coin lock/unlock', function() {
+    const checkLockedStatus = async (coin, options) => {
+      const smartCoins = await mswallet.getSmartCoins();
+      assert.strictEqual(smartCoins.length, options.smartCoins);
+
+      const locked = await mswallet.getLocked(false);
+      assert.strictEqual(locked.length, options.locked);
+
+      const lockedProposal = await mswallet.getLocked(true);
+      assert.strictEqual(lockedProposal.length, options.lockedProposal);
+
+      const isLockedTXDB = mswallet.isLockedTXDB(coin);
+      assert.strictEqual(isLockedTXDB, options.isLockedTXDB);
+
+      const isLocked = await mswallet.isLocked(coin);
+      assert.strictEqual(isLocked, options.isLocked);
+    };
+
     beforeEach(async () => {
       await walletUtils.fundWalletBlock(wdb, mswallet, 1);
     });
@@ -329,78 +346,48 @@ describe(`MultisigProposals ${WITNESS ? 'witness' : 'legacy'}`, function () {
       assert.strictEqual(coins.length, 1);
       const coin = coins[0];
 
-      {
-        const locked = await mswallet.getLocked(false);
-        assert.strictEqual(locked.length, 0);
-
-        const lockedProposal = await mswallet.getLocked(true);
-        assert.strictEqual(lockedProposal.length, 0);
-
-        const isLockedTXDB = mswallet.isLockedTXDB(coin);
-        assert.strictEqual(isLockedTXDB, false);
-
-        const isLocked = await mswallet.isLocked(coin);
-        assert.strictEqual(isLocked, false);
-      }
+      await checkLockedStatus(coin, {
+        smartCoins: 1,
+        locked: 0,
+        lockedProposal: 0,
+        isLockedTXDB: false,
+        isLocked: false
+      });
 
       // TXDB lock
       mswallet.lockCoinTXDB(coin);
-      {
-        const locked = await mswallet.getLocked(false);
-        assert.strictEqual(locked.length, 1);
 
-        const lockedProposal = await mswallet.getLocked(true);
-        assert.strictEqual(lockedProposal.length, 0);
-
-        const coins = await mswallet.getSmartCoins();
-        assert.strictEqual(coins.length, 0);
-
-        const isLockedTXDB = mswallet.isLockedTXDB(coin);
-        assert.strictEqual(isLockedTXDB, true);
-
-        const isLocked = await mswallet.isLocked(coin);
-        assert.strictEqual(isLocked, false);
-      }
+      await checkLockedStatus(coin, {
+        smartCoins: 0,
+        locked: 1,
+        lockedProposal: 0,
+        isLockedTXDB: true,
+        isLocked: false
+      });
 
       // recover TXBD Lock.
       mswallet.unlockCoinTXDB(coin);
-      {
-        const locked = await mswallet.getLocked(false);
-        assert.strictEqual(locked.length, 0);
 
-        const lockedProposal = await mswallet.getLocked(true);
-        assert.strictEqual(lockedProposal.length, 0);
-
-        const coins = await mswallet.getSmartCoins();
-        assert.strictEqual(coins.length, 1);
-
-        const isLockedTXDB = mswallet.isLockedTXDB(coin);
-        assert.strictEqual(isLockedTXDB, false);
-
-        const isLocked = await mswallet.isLocked(coin);
-        assert.strictEqual(isLocked, false);
-      }
+      await checkLockedStatus(coin, {
+        smartCoins: 1,
+        locked: 0,
+        lockedProposal: 0,
+        isLockedTXDB: false,
+        isLocked: false
+      });
 
       // mswallet unlock.
       mswallet.lockCoinTXDB(coin);
 
       await mswallet.unlockCoin(coin);
-      {
-        const locked = await mswallet.getLocked(false);
-        assert.strictEqual(locked.length, 0);
 
-        const lockedProposal = await mswallet.getLocked(true);
-        assert.strictEqual(lockedProposal.length, 0);
-
-        const coins = await mswallet.getSmartCoins();
-        assert.strictEqual(coins.length, 1);
-
-        const isLockedTXDB = mswallet.isLockedTXDB(coin);
-        assert.strictEqual(isLockedTXDB, false);
-
-        const isLocked = await mswallet.isLocked(coin);
-        assert.strictEqual(isLocked, false);
-      }
+      await checkLockedStatus(coin, {
+        smartCoins: 1,
+        locked: 0,
+        lockedProposal: 0,
+        isLockedTXDB: false,
+        isLocked: false
+      });
     });
 
     it('should not unlock coin proposal coin', async () => {
@@ -411,22 +398,13 @@ describe(`MultisigProposals ${WITNESS ? 'witness' : 'legacy'}`, function () {
       assert.strictEqual(coins.length, 1);
       assert(proposal);
 
-      {
-        const locked = await mswallet.getLocked(false);
-        assert.strictEqual(locked.length, 1);
-
-        const lockedProposal = await mswallet.getLocked(true);
-        assert.strictEqual(lockedProposal.length, 1);
-
-        const coins = await mswallet.getSmartCoins();
-        assert.strictEqual(coins.length, 0);
-
-        const isLockedTXDB = mswallet.isLockedTXDB(coin);
-        assert.strictEqual(isLockedTXDB, true);
-
-        const isLocked = await mswallet.isLocked(coin);
-        assert.strictEqual(isLocked, true);
-      }
+      await checkLockedStatus(coin, {
+        smartCoins: 0,
+        locked: 1,
+        lockedProposal: 1,
+        isLockedTXDB: true,
+        isLocked: true
+      });
 
       await assert.rejects(async () => {
         await mswallet.unlockCoin(coin);
@@ -436,22 +414,43 @@ describe(`MultisigProposals ${WITNESS ? 'witness' : 'legacy'}`, function () {
 
       await mswallet.forceRejectProposal(proposal.id);
 
-      {
-        const locked = await mswallet.getLocked(false);
-        assert.strictEqual(locked.length, 0);
+      await checkLockedStatus(coin, {
+        smartCoins: 1,
+        locked: 0,
+        lockedProposal: 0,
+        isLockedTXDB: false,
+        isLocked: false
+      });
+    });
 
-        const lockedProposal = await mswallet.getLocked(true);
-        assert.strictEqual(lockedProposal.length, 0);
+    it('should force unlock coins', async () => {
+      const coins = await mswallet.getSmartCoins();
+      const coin = coins[0];
+      const proposal = await mkProposal(mswallet, cosignerCtx1, 1);
 
-        const coins = await mswallet.getSmartCoins();
-        assert.strictEqual(coins.length, 1);
+      assert.strictEqual(coins.length, 1);
+      assert(proposal);
 
-        const isLockedTXDB = mswallet.isLockedTXDB(coin);
-        assert.strictEqual(isLockedTXDB, false);
+      await checkLockedStatus(coin, {
+        smartCoins: 0,
+        locked: 1,
+        lockedProposal: 1,
+        isLockedTXDB: true,
+        isLocked: true
+      });
 
-        const isLocked = await mswallet.isLocked(coin);
-        assert.strictEqual(isLocked, false);
-      }
+      await mswallet.forceUnlockCoin(coin);
+
+      await checkLockedStatus(coin, {
+        smartCoins: 1,
+        locked: 0,
+        lockedProposal: 0,
+        isLockedTXDB: false,
+        isLocked: false
+      });
+
+      const rejectedProposal = await mswallet.getProposal(proposal.id);
+      assert.strictEqual(rejectedProposal.status, Proposal.status.UNLOCK);
     });
   });
 
