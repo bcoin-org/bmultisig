@@ -51,14 +51,10 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
     network: options.network,
     memory: options.memory,
     workers: options.workers,
-
     walletAuth: true,
     apiKey: options.apiKey,
     nodeApiKey: options.apiKey,
     adminToken: ADMIN_TOKEN,
-
-    // logLevel: 'debug',
-
     plugins: [require('../lib/plugin')]
   });
 
@@ -535,6 +531,102 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
     assert.strictEqual(tx.outputs.length, 1);
   });
 
+  it('should lock/unlock coins', async () => {
+    const wid = WALLET_OPTIONS.id;
+    const coins = await testWalletClient1.getCoins(wid);
+    const {hash, index} = coins[0];
+
+    const lock = await testWalletClient1.lockCoin(wid, hash, index);
+
+    assert(lock);
+    assert.strictEqual(lock.success, true);
+
+    {
+      const locked = await testWalletClient1.getLocked(wid);
+      assert(locked);
+      assert.strictEqual(locked.length, 1);
+
+      const lockedProposal = await testWalletClient1.getLocked(wid, true);
+      assert(lockedProposal);
+      assert.strictEqual(lockedProposal.length, 0);
+
+      // we should not be able to create transaction with 4 coins,
+      // we are missing one.
+      const txoptions = getTXOptions(5);
+
+      await assert.rejects(async () => {
+        await testWalletClient1.createTX(wid, txoptions);
+      }, {
+        message: /^Not enough funds\./
+      });
+    }
+
+    {
+      const unlock = await testWalletClient1.unlockCoin(wid, hash, index);
+
+      assert(unlock);
+      assert(unlock.success, true);
+
+      const locked = await testWalletClient1.getLocked(wid );
+
+      assert(locked);
+      assert.strictEqual(locked.length, 0);
+
+      const lockedProposal = await testWalletClient1.getLocked(wid, true);
+      assert(lockedProposal);
+      assert.strictEqual(lockedProposal.length, 0);
+    }
+  });
+
+  it('should reject proposal with forced unlock', async () => {
+    const wid = WALLET_OPTIONS.id;
+    const coins = await testWalletClient1.getCoins(wid);
+    const {hash, index} = coins[0];
+
+    const txoptions = getTXOptions(5);
+    const proposalOptions = {
+      memo: 'forced-coin-unlock',
+      timestamp: now(),
+      txoptions
+    };
+
+    const signature = cosignerCtx1.signProposal(CREATE, proposalOptions);
+    const proposal = await testWalletClient1.createProposal(wid, {
+      proposal: proposalOptions,
+      signature: signature.toString('hex')
+    });
+
+    assert(proposal);
+
+    {
+      const locked = await testWalletClient1.getLocked(wid, false);
+      assert(locked);
+      assert.strictEqual(locked.length, coins.length);
+
+      const lockedProposal = await testWalletClient1.getLocked(wid, true);
+      assert(lockedProposal);
+      assert.strictEqual(lockedProposal.length, coins.length);
+    }
+
+    // force reject from user
+    await assert.rejects(async () => {
+      await testWalletClient1.unlockCoin(wid, hash, index, true);
+    }, {
+      message: 'Can not unlock coin locked by proposal.'
+    });
+
+    // admin with force=false
+    await assert.rejects(async () => {
+      await adminClient.unlockCoin(wid, hash, index);
+    }, {
+      message: 'Can not unlock coin locked by proposal.'
+    });
+
+    const unlocked = await adminClient.unlockCoin(wid, hash, index, true);
+    assert(unlocked);
+    assert.strictEqual(unlocked.success, true);
+  });
+
   it('should create proposal', async () => {
     const createEvents = Promise.all([
       waitForBind(adminClient, 'proposal created'),
@@ -770,7 +862,7 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
     );
 
     assert.strictEqual(pendingProposals.length, 0);
-    assert.strictEqual(proposals.length, 1);
+    assert.strictEqual(proposals.length, 2);
 
     assert.strictEqual(proposal.memo, 'proposal1');
     assert.strictEqual(proposal.statusCode, Proposal.status.REJECTED);
