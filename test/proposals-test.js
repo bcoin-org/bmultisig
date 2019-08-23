@@ -6,6 +6,7 @@
 const assert = require('bsert');
 const walletUtils = require('./util/wallet');
 const testUtils = require('./util/utils');
+const {forEvent} = testUtils;
 const CosignerCtx = require('./util/cosigner-context');
 const bcoin = require('bcoin');
 const {Script, KeyRing, MTX, Amount} = bcoin;
@@ -42,17 +43,21 @@ describe(`MultisigProposals ${WITNESS ? 'witness' : 'legacy'}`, function () {
     joinPrivKey: cosignerCtx1.joinPrivKey
   });
 
+  const cosignerCtxs = [cosignerCtx1, cosignerCtx2, cosignerCtx3];
+
   const [priv1, priv2, priv3] = [
     cosignerCtx1.accountPrivKey,
     cosignerCtx2.accountPrivKey,
     cosignerCtx3.accountPrivKey
   ];
 
-  const [xpub1, xpub2, xpub3] = [
+  const xpubs = [
     cosignerCtx1.accountKey,
     cosignerCtx2.accountKey,
     cosignerCtx3.accountKey
   ];
+
+  const [xpub1, xpub2, xpub3] = xpubs;
 
   let cosigner1, cosigner2;
 
@@ -127,13 +132,13 @@ describe(`MultisigProposals ${WITNESS ? 'witness' : 'legacy'}`, function () {
       assert.strictEqual(pending.length, 0);
 
       const proposal = await mkProposal(mswallet, cosignerCtx1, 2, 'proposal1');
-      const mtx = await mswallet.getProposalMTX(proposal.id);
-      const paths = await mswallet.getInputPaths(mtx);
-      const rings = testUtils.getMTXRings(
-        mtx, paths, priv1, [xpub1, xpub2], 2, WITNESS
+      const sigs = await signProposal(
+        mswallet,
+        proposal,
+        cosignerCtxs,
+        cosignerCtx1,
+        WITNESS
       );
-
-      const sigs = testUtils.getMTXSignatures(mtx, rings);
 
       assert.strictEqual(sigs.length, 2, 'Wrong number of signatures.');
 
@@ -183,10 +188,13 @@ describe(`MultisigProposals ${WITNESS ? 'witness' : 'legacy'}`, function () {
       assert.strictEqual(approved.approvals.has(cosigner1.id), true);
 
       // approve by second cosigner
-      const rings2 = testUtils.getMTXRings(
-        mtx, paths, priv2, [xpub1, xpub2], 2, WITNESS
+      const sigs2 = await signProposal(
+        mswallet,
+        proposal,
+        cosignerCtxs,
+        cosignerCtx2,
+        WITNESS
       );
-      const sigs2 = testUtils.getMTXSignatures(mtx, rings2);
 
       const approved2 = await mswallet.approveProposal(
         proposal.id,
@@ -623,6 +631,62 @@ describe(`MultisigProposals ${WITNESS ? 'witness' : 'legacy'}`, function () {
       assert.strictEqual(pidByOutpoint, -1);
     });
 
+    it('should unlock coins on approval', async () => {
+      const proposal = await mkProposal(mswallet, cosignerCtx1, 1);
+
+      assert.ok(proposal instanceof Proposal);
+
+      const coins = await mswallet.getProposalCoins(proposal.id);
+
+      const sigs = await Promise.all([cosignerCtx1, cosignerCtx2].map((ctx) => {
+        return signProposal(
+          mswallet,
+          proposal,
+          cosignerCtxs,
+          ctx,
+          WITNESS
+        );
+      }));
+
+      await mswallet.approveProposal(
+        proposal.id,
+        cosigner1,
+        sigs[0]
+      );
+
+      const approved = await mswallet.approveProposal(
+        proposal.id,
+        cosigner2,
+        sigs[1]
+      );
+
+      assert.strictEqual(approved.isApproved(), true);
+
+      // WDB does not have tx yet.
+      const coin = coins[0];
+
+      {
+        const pidByOutpoint = await mswallet.getPIDByOutpoint(coin);
+        const locked = wallet.getLocked();
+
+        assert(pidByOutpoint > -1);
+        assert(locked.length > 0);
+      }
+
+      const tx = await mswallet.getProposalTX(proposal.id);
+      await wdb.addTX(tx, -1);
+
+      await forEvent(mswallet, 'unlocked coin', 2000);
+
+      {
+        const pidByOutpoint = await mswallet.getPIDByOutpoint(coin);
+        const locked = wallet.getLocked();
+
+        assert.strictEqual(locked.length, 0);
+        assert.strictEqual(pidByOutpoint, -1);
+      }
+    });
+
     it('should lock the coins after server restart', async () => {
       const coins = await wallet.getCoins();
       assert.strictEqual(coins.length, 1);
@@ -759,6 +823,9 @@ describe(`MultisigProposals ${WITNESS ? 'witness' : 'legacy'}`, function () {
 
       await mswallet.forceRejectProposal(proposal.id);
 
+      const pid = await mswallet.getPIDByOutpoint(coin);
+      assert.strictEqual(pid, -1);
+
       await checkLockedStatus(coin, {
         smartCoins: 1,
         locked: 0,
@@ -875,6 +942,45 @@ async function mkProposal(wallet, cosignerCtx, btc, memo = 'proposal') {
 
   return proposal;
 }
+
+/**
+ * @ignore
+ * @param {MultisigClient.Wallet} mswallet
+ * @param {CosignerCtx[]} cosignerCtxs
+ * @param {Object} options
+ * @param {Number} options.m
+ * @param {Number} options.pid - proposal id
+ * @param {CosignerCtx} options.cosignerCtx - signer
+ * @param {Boolean} options.witness
+ * @returns {Buffer[]} signatures
+ */
+
+async function signProposal(mswallet, proposal, cosignerCtxs, cosignerCtx, witness = true) {
+  const mtx = await mswallet.getProposalMTX(proposal.id);
+  const paths = await mswallet.getInputPaths(mtx);
+
+  // the signer.
+  if (!cosignerCtx)
+    cosignerCtx = cosignerCtxs[0];
+
+  const m = proposal.m;
+
+  const xpubs = cosignerCtxs.slice(0, m).map(c => c.accountKey);
+  const privKey = cosignerCtx.accountPrivKey;
+
+  const rings = testUtils.getMTXRings(
+    mtx,
+    paths,
+    privKey,
+    xpubs,
+    m,
+    witness
+  );
+
+  const signatures = testUtils.getMTXSignatures(mtx, rings);
+
+  return signatures;
+};
 
 function getTXOptions(btc) {
   const address = generateAddress();

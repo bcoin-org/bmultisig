@@ -6,6 +6,7 @@
 const assert = require('bsert');
 const walletUtils = require('./util/wallet');
 const testUtils = require('./util/utils');
+const {forEvent} = testUtils;
 
 const bcoin = require('bcoin');
 const {Network, FullNode} = bcoin;
@@ -125,11 +126,11 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
       testWalletClient2.open();
 
     await Promise.all([
-      waitFor(adminClient, 'connect'),
-      waitFor(multisigClient, 'connect'),
-      waitFor(walletAdminClient, 'connect'),
-      testWalletClient1 ? waitFor(testWalletClient1, 'connect') : null,
-      testWalletClient2 ? waitFor(testWalletClient2, 'connect') : null
+      forEvent(adminClient, 'connect'),
+      forEvent(multisigClient, 'connect'),
+      forEvent(walletAdminClient, 'connect'),
+      testWalletClient1 ? forEvent(testWalletClient1, 'connect') : null,
+      testWalletClient2 ? forEvent(testWalletClient2, 'connect') : null
     ]);
 
     if (testWalletClient1 && testWalletClient1.opened)
@@ -223,7 +224,7 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
     // try to listen wallet events
     msclient.open();
 
-    await waitFor(msclient, 'connect');
+    await forEvent(msclient, 'connect');
 
     err = null;
     try {
@@ -1190,19 +1191,6 @@ function getTXOptions(btc) {
 
 function generateAddress() {
   return KeyRing.generate(true).getAddress();
-}
-
-function waitFor(emitter, event, timeout = 1000) {
-  return new Promise((resolve, reject) => {
-    const t = setTimeout(() => {
-      reject(new Error('Timeout.'));
-    }, timeout);
-
-    emitter.once(event, (...args) => {
-      clearTimeout(t);
-      resolve(...args);
-    });
-  });
 }
 
 // TODO: remove once bcurl/bclient PRs get merged and published

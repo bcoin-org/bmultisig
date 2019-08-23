@@ -69,9 +69,28 @@ function getMTXRings(mtx, paths, xpriv, xpubs, m = 2, witness = true) {
   return rings;
 }
 
+function forEvent(emitter, event, timeout = 1000) {
+  return new Promise((resolve, reject) => {
+    let t;
+
+    const listener = (...args) => {
+      clearTimeout(t);
+      resolve(...args);
+    };
+
+    t = setTimeout(() => {
+      emitter.removeListener(event, listener);
+      reject(new Error('Timeout.'));
+    }, timeout);
+
+    emitter.once(event, listener);
+  });
+}
+
 /*
  * Expose
  */
 
 exports.getMTXSignatures = getMTXSignatures;
 exports.getMTXRings = getMTXRings;
+exports.forEvent = forEvent;
