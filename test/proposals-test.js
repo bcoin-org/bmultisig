@@ -517,11 +517,12 @@ describe(`MultisigProposals ${WITNESS ? 'witness' : 'legacy'}`, function () {
       const proposal = await mkProposal(mswallet, cosignerCtx1, 1);
       assert.ok(proposal instanceof Proposal);
 
+      const rejectEvent = forEvent(mswallet, 'proposal rejected', 2000);
+
       await walletUtils.removeBlock(wdb);
       await walletUtils.doubleSpendTransaction(wdb, mtx.toTX());
 
-      // TODO: remove timeout after events
-      await new Promise(r => setTimeout(r, 100));
+      await rejectEvent;
 
       const checkProposal = await mswallet.getProposal(proposal.id);
 
@@ -614,7 +615,7 @@ describe(`MultisigProposals ${WITNESS ? 'witness' : 'legacy'}`, function () {
 
       assert.ok(proposal instanceof Proposal);
 
-      const coins = await mswallet.getProposalCoins(proposal.id);
+      const coins = await mswallet.getProposalOutpoints(proposal.id);
 
       const signature = cosignerCtx1.signProposal(REJECT, proposal.options);
 
@@ -636,7 +637,7 @@ describe(`MultisigProposals ${WITNESS ? 'witness' : 'legacy'}`, function () {
 
       assert.ok(proposal instanceof Proposal);
 
-      const coins = await mswallet.getProposalCoins(proposal.id);
+      const coins = await mswallet.getProposalOutpoints(proposal.id);
 
       const sigs = await Promise.all([cosignerCtx1, cosignerCtx2].map((ctx) => {
         return signProposal(
@@ -677,6 +678,7 @@ describe(`MultisigProposals ${WITNESS ? 'witness' : 'legacy'}`, function () {
       await wdb.addTX(tx, -1);
 
       await forEvent(mswallet, 'unlocked coin', 2000);
+      await sleep(100);
 
       {
         const pidByOutpoint = await mswallet.getPIDByOutpoint(coin);
@@ -865,6 +867,213 @@ describe(`MultisigProposals ${WITNESS ? 'witness' : 'legacy'}`, function () {
       assert.strictEqual(rejectedProposal.status, Proposal.status.UNLOCK);
     });
   });
+
+  describe('Proposal stats', function() {
+    it('should get pending proposals stats', async () => {
+      // 2 coins for one pending proposal
+      await walletUtils.fundWalletBlock(wdb, mswallet, 1);
+      await walletUtils.fundWalletBlock(wdb, mswallet, 1);
+
+      await mkProposal(mswallet, cosignerCtx1, 2);
+      const stats = await mswallet.getStats();
+
+      assert.deepStrictEqual(stats.toJSON(), {
+        lockedOwnCoins: 2,
+        lockedOwnBalance: 200000000,
+        proposals: 1,
+        pending: 1,
+        rejected: 0,
+        approved: 0
+      });
+    });
+
+    it('should get approved proposal stats', async () => {
+      await walletUtils.fundWalletBlock(wdb, mswallet, 1);
+      await walletUtils.fundWalletBlock(wdb, mswallet, 1);
+
+      const proposal = await mkProposal(mswallet, cosignerCtx1, 2);
+
+      {
+        const stats = await mswallet.getStats();
+
+        assert.deepStrictEqual(stats.toJSON(), {
+          lockedOwnCoins: 2,
+          lockedOwnBalance: 200000000,
+          proposals: 1,
+          pending: 1,
+          rejected: 0,
+          approved: 0
+        });
+      }
+
+      const sigs = await Promise.all([cosignerCtx1, cosignerCtx2].map((ctx) => {
+        return signProposal(
+          mswallet,
+          proposal,
+          cosignerCtxs,
+          ctx,
+          WITNESS
+        );
+      }));
+
+      await mswallet.approveProposal(
+        proposal.id,
+        cosigner1,
+        sigs[0]
+      );
+
+      await mswallet.approveProposal(
+        proposal.id,
+        cosigner2,
+        sigs[1]
+      );
+
+      {
+        const stats = await mswallet.getStats();
+
+        assert.deepStrictEqual(stats.toJSON(), {
+          lockedOwnCoins: 2,
+          lockedOwnBalance: 200000000,
+          proposals: 1,
+          pending: 0,
+          rejected: 0,
+          approved: 1
+        });
+      }
+
+      // now we broadcast the transaction
+      const tx = await mswallet.getProposalTX(proposal.id);
+      await wdb.addTX(tx, -1);
+      await sleep(100);
+
+      {
+        const stats = await mswallet.getStats();
+
+        assert.deepStrictEqual(stats.toJSON(), {
+          lockedOwnCoins: 0,
+          lockedOwnBalance: 0,
+          proposals: 1,
+          pending: 0,
+          rejected: 0,
+          approved: 1
+        });
+      }
+    });
+
+    it('should get rejected proposal stats', async () => {
+      await walletUtils.fundWalletBlock(wdb, mswallet, 1);
+      await walletUtils.fundWalletBlock(wdb, mswallet, 2);
+
+      const proposal = await mkProposal(mswallet, cosignerCtx1, 2.1);
+
+      {
+        const stats = await mswallet.getStats();
+
+        assert.deepStrictEqual(stats.toJSON(), {
+          lockedOwnCoins: 2,
+          lockedOwnBalance: 300000000,
+          proposals: 1,
+          pending: 1,
+          approved: 0,
+          rejected: 0
+        });
+      }
+
+      const signature = cosignerCtx1.signProposal(
+        REJECT,
+        proposal.options
+      );
+
+      await mswallet.rejectProposal(
+        proposal.id,
+        cosigner1,
+        signature
+      );
+
+      const stats = await mswallet.getStats();
+
+      assert.deepStrictEqual(stats.toJSON(), {
+        lockedOwnCoins: 0,
+        lockedOwnBalance: 0,
+        proposals: 1,
+        pending: 0,
+        approved: 0,
+        rejected: 1
+      });
+    });
+
+    it('should get force rejected proposal stats', async () => {
+      await walletUtils.fundWalletBlock(wdb, mswallet, 1);
+
+      const proposal = await mkProposal(mswallet, cosignerCtx1, 1);
+
+      {
+        const stats = await mswallet.getStats();
+
+        assert.deepStrictEqual(stats.toJSON(), {
+          lockedOwnCoins: 1,
+          lockedOwnBalance: 100000000,
+          proposals: 1,
+          pending: 1,
+          approved: 0,
+          rejected: 0
+        });
+      }
+
+      await mswallet.forceRejectProposal(proposal.id);
+
+      {
+        const stats = await mswallet.getStats();
+
+        assert.deepStrictEqual(stats.toJSON(), {
+          lockedOwnCoins: 0,
+          lockedOwnBalance: 0,
+          proposals: 1,
+          pending: 0,
+          approved: 0,
+          rejected: 1
+        });
+      }
+    });
+
+    it('should get double spent proposal stats', async () => {
+      await walletUtils.fundWalletBlock(wdb, mswallet, 1);
+      const mtx = await walletUtils.fundWalletBlock(wdb, mswallet, 2);
+
+      await mkProposal(mswallet, cosignerCtx1, 3);
+
+      {
+        const stats = await mswallet.getStats();
+
+        assert.deepStrictEqual(stats.toJSON(), {
+          lockedOwnCoins: 2,
+          lockedOwnBalance: 300000000,
+          proposals: 1,
+          pending: 1,
+          approved: 0,
+          rejected: 0
+        });
+      }
+
+      const rejectEvent = forEvent(mswallet, 'proposal rejected', 2000);
+      await walletUtils.removeBlock(wdb);
+      await walletUtils.doubleSpendTransaction(wdb, mtx.toTX());
+      await rejectEvent;
+
+      {
+        const stats = await mswallet.getStats();
+
+        assert.deepStrictEqual(stats.toJSON(), {
+          lockedOwnCoins: 0,
+          lockedOwnBalance: 0,
+          proposals: 1,
+          pending: 0,
+          approved: 0,
+          rejected: 1
+        });
+      }
+    });
+  });
 });
 
 /*
@@ -1010,4 +1219,8 @@ function generateAddress() {
 
 function now() {
   return Math.floor(Date.now() / 1000);
+}
+
+function sleep(ms) {
+  return new Promise(r => setTimeout(r, ms));
 }
