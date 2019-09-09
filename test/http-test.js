@@ -1146,7 +1146,7 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
   });
 
   it('should delete multisig wallet', async () => {
-    const id = 'test';
+    const id = WALLET_OPTIONS.id;
     const multisigWalletsBefore = await adminClient.getWallets();
     const walletsBefore = await walletAdminClient.getWallets();
     const removed = await adminClient.removeWallet(id);
