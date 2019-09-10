@@ -5,9 +5,6 @@
 
 bmultisig is a [bcoin][bcoin] plugin which adds multisig wallet http endpoints and events to bwallet for payment proposals.
 
-## Note
-**This is work in progress, not ready for production use.**
-
 ## Usage
 
 ``` bash

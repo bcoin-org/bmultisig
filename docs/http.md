@@ -276,7 +276,15 @@ HTTP Response:
       "fingerPrint": 358396470,
       "data": ""
     }
-  ]
+  ],
+  "proposalStats": {
+    "lockedOwnCoins": 0,
+    "lockedOwnBalance": 0,
+    "proposals": 0,
+    "pending": 0,
+    "approved": 0,
+    "rejected": 0
+  }
 }
 ```
 
@@ -747,7 +755,7 @@ HTTP Response:
 ```
 
 #### POST /:id/proposal/:name/reject
-*Cosigner authentication.*
+*Cosigner or Admin authentication.*
 
 Reject proposal. In order to reject proposal, cosigner needs
 to sign `proposalOptions` that where used for creating proposal
@@ -769,9 +777,21 @@ Params:
 }
 ```
 
+or Admin:
+```json5
+{
+  "force": true
+}
+```
+
 ```javascript
 await client.rejectProposal(id, name, {
   signature: signature
+});
+
+// admin
+await adminClient.rejectProposal(id, name, {
+  force: true
 });
 ```
 
@@ -855,54 +875,6 @@ HTTP Reponse:
   "n": 2,
   "statusCode": 0,
   "statusMessage": "Proposal is in progress.",
-  "cosignerDetails": {}
-}
-```
-
-#### DELETE /multisig/:id/proposal/:pid/force-reject
-Force reject proposal. *Admin Only*
-
-Admin can reject proposal without any signatures, whether it
-is reject partially or not.
-
-No parameters.
-
-```javascript
-await client.forceRejectProposal(id, pid);
-```
-
-HTTP Reponse:
-
-```json5
-{
-  "id": 0,
-  "memo": "proposal-force-reject",
-  "tx": null,
-  "author": 0,
-  "approvals": {},
-  "rejections": {},
-  "signature": "20906664c8b79f137dcb5d67b4164643e94dcc8c61046566ddbf2ee56e71ec1e9021a0d288b99498bd6e5a6ebe7a2132fb8e233ee1540fd8acefb93e8da0c87c43",
-  "options": {
-    "memo": "proposal-force-reject",
-    "timestamp": 1565901627,
-    "txoptions": {
-      "subtractFee": true,
-      "outputs": [
-        {
-          "address": "RRfs7LfkQXiQpUbA8WbPv8XU3gz1wrM3aC",
-          "value": 500000000
-        }
-      ]
-    }
-  },
-  "timestamp": 1565901627,
-  "createdAt": 1565901627,
-  "rejectedAt": 0,
-  "approvedAt": null,
-  "m": 2,
-  "n": 2,
-  "statusCode": 5,
-  "statusMessage": "Proposal has been rejected manually.",
   "cosignerDetails": {}
 }
 ```
