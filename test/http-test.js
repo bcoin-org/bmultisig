@@ -895,7 +895,9 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
     const pid = proposal.id;
 
     await assert.rejects(async () => {
-      await testWalletClient1.forceRejectProposal(wid, pid);
+      await testWalletClient1.rejectProposal(wid, pid, {
+        force: true
+      });
     }, {
       message: 'Status code: 403.'
     });
@@ -908,7 +910,9 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
     ]);
 
     // admin can reject.
-    const rejectedProposal = await adminClient.forceRejectProposal(wid, pid);
+    const rejectedProposal = await adminClient.rejectProposal(wid, pid, {
+      force: true
+    });
 
     assert(rejectedProposal);
     assert(rejectedProposal.statusCode === Proposal.status.FORCE);
