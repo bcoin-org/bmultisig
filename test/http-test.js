@@ -18,6 +18,7 @@ const {CREATE, REJECT} = Proposal.payloadType;
 
 const MultisigClient = require('../lib/client');
 const {WalletClient} = require('bclient');
+const {WalletDetails} = require('../lib/export');
 
 const NETWORK_NAME = 'regtest';
 const API_KEY = 'foo';
@@ -303,6 +304,34 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
       purpose: options.cosigner.purpose,
       fingerPrint: options.cosigner.fingerPrint
     });
+  });
+
+  it('should export wallet', async () => {
+    const walletName = WALLET_OPTIONS.id;
+    const json = await adminClient.export(walletName);
+    const info = WalletDetails.fromJSON(json, network);
+
+    assert.deepStrictEqual(json, info.getJSON(network));
+  });
+
+  it('should import wallet', async () => {
+    const walletName = WALLET_OPTIONS.id;
+    const importedName = 'wallet-import';
+    const json = await adminClient.export(walletName);
+
+    const mswallet = await adminClient.import(importedName, json);
+    assert(mswallet);
+
+    const walletInfo = await adminClient.getInfo(walletName);
+    const newWalletInfo = await adminClient.getInfo(importedName);
+
+    // HACK to skip wid/id checks
+    newWalletInfo.id = walletInfo.id;
+    newWalletInfo.wid = walletInfo.wid;
+
+    assert.deepStrictEqual(newWalletInfo, walletInfo);
+
+    await adminClient.removeWallet(importedName);
   });
 
   it('should get multisig wallet by id', async () => {
