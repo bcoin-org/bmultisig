@@ -6,6 +6,7 @@
 const assert = require('bsert');
 const walletUtils = require('./util/wallet');
 const testUtils = require('./util/utils');
+const {forEvent} = testUtils;
 
 const bcoin = require('bcoin');
 const {Network, FullNode} = bcoin;
@@ -51,14 +52,10 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
     network: options.network,
     memory: options.memory,
     workers: options.workers,
-
     walletAuth: true,
     apiKey: options.apiKey,
     nodeApiKey: options.apiKey,
     adminToken: ADMIN_TOKEN,
-
-    // logLevel: 'debug',
-
     plugins: [require('../lib/plugin')]
   });
 
@@ -129,11 +126,11 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
       testWalletClient2.open();
 
     await Promise.all([
-      waitFor(adminClient, 'connect'),
-      waitFor(multisigClient, 'connect'),
-      waitFor(walletAdminClient, 'connect'),
-      testWalletClient1 ? waitFor(testWalletClient1, 'connect') : null,
-      testWalletClient2 ? waitFor(testWalletClient2, 'connect') : null
+      forEvent(adminClient, 'connect'),
+      forEvent(multisigClient, 'connect'),
+      forEvent(walletAdminClient, 'connect'),
+      testWalletClient1 ? forEvent(testWalletClient1, 'connect') : null,
+      testWalletClient2 ? forEvent(testWalletClient2, 'connect') : null
     ]);
 
     if (testWalletClient1 && testWalletClient1.opened)
@@ -227,7 +224,7 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
     // try to listen wallet events
     msclient.open();
 
-    await waitFor(msclient, 'connect');
+    await forEvent(msclient, 'connect');
 
     err = null;
     try {
@@ -535,6 +532,102 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
     assert.strictEqual(tx.outputs.length, 1);
   });
 
+  it('should lock/unlock coins', async () => {
+    const wid = WALLET_OPTIONS.id;
+    const coins = await testWalletClient1.getCoins(wid);
+    const {hash, index} = coins[0];
+
+    const lock = await testWalletClient1.lockCoin(wid, hash, index);
+
+    assert(lock);
+    assert.strictEqual(lock.success, true);
+
+    {
+      const locked = await testWalletClient1.getLocked(wid);
+      assert(locked);
+      assert.strictEqual(locked.length, 1);
+
+      const lockedProposal = await testWalletClient1.getLocked(wid, true);
+      assert(lockedProposal);
+      assert.strictEqual(lockedProposal.length, 0);
+
+      // we should not be able to create transaction with 4 coins,
+      // we are missing one.
+      const txoptions = getTXOptions(5);
+
+      await assert.rejects(async () => {
+        await testWalletClient1.createTX(wid, txoptions);
+      }, {
+        message: /^Not enough funds\./
+      });
+    }
+
+    {
+      const unlock = await testWalletClient1.unlockCoin(wid, hash, index);
+
+      assert(unlock);
+      assert(unlock.success, true);
+
+      const locked = await testWalletClient1.getLocked(wid );
+
+      assert(locked);
+      assert.strictEqual(locked.length, 0);
+
+      const lockedProposal = await testWalletClient1.getLocked(wid, true);
+      assert(lockedProposal);
+      assert.strictEqual(lockedProposal.length, 0);
+    }
+  });
+
+  it('should reject proposal with forced unlock', async () => {
+    const wid = WALLET_OPTIONS.id;
+    const coins = await testWalletClient1.getCoins(wid);
+    const {hash, index} = coins[0];
+
+    const txoptions = getTXOptions(5);
+    const proposalOptions = {
+      memo: 'forced-coin-unlock',
+      timestamp: now(),
+      txoptions
+    };
+
+    const signature = cosignerCtx1.signProposal(CREATE, proposalOptions);
+    const proposal = await testWalletClient1.createProposal(wid, {
+      proposal: proposalOptions,
+      signature: signature.toString('hex')
+    });
+
+    assert(proposal);
+
+    {
+      const locked = await testWalletClient1.getLocked(wid, false);
+      assert(locked);
+      assert.strictEqual(locked.length, coins.length);
+
+      const lockedProposal = await testWalletClient1.getLocked(wid, true);
+      assert(lockedProposal);
+      assert.strictEqual(lockedProposal.length, coins.length);
+    }
+
+    // force reject from user
+    await assert.rejects(async () => {
+      await testWalletClient1.unlockCoin(wid, hash, index, true);
+    }, {
+      message: 'Can not unlock coin locked by proposal.'
+    });
+
+    // admin with force=false
+    await assert.rejects(async () => {
+      await adminClient.unlockCoin(wid, hash, index);
+    }, {
+      message: 'Can not unlock coin locked by proposal.'
+    });
+
+    const unlocked = await adminClient.unlockCoin(wid, hash, index, true);
+    assert(unlocked);
+    assert.strictEqual(unlocked.success, true);
+  });
+
   it('should create proposal', async () => {
     const createEvents = Promise.all([
       waitForBind(adminClient, 'proposal created'),
@@ -644,6 +737,56 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
     assert(txinfo.tx);
   });
 
+  it('should fail getting proposal by non-existent coin', async () => {
+    const wid = WALLET_OPTIONS.id;
+    const hash = Buffer.alloc(32, 0).toString('hex');
+    const index = 0;
+
+    const proposal = await testWalletClient1.getProposalByCoin(
+      wid,
+      hash,
+      index
+    );
+
+    assert.strictEqual(proposal, null);
+  });
+
+  it('should get proposal by coin', async () => {
+    const txinfo = await testWalletClient1.getProposalMTX(
+      WALLET_OPTIONS.id,
+      pid1
+    );
+
+    const {hash, index} = txinfo.tx.inputs[0].prevout;
+
+    const clients = [
+      testWalletClient1,
+      testWalletClient2,
+      adminClient
+    ];
+
+    for (const client of clients) {
+      const proposal = await client.getProposalByCoin(
+        WALLET_OPTIONS.id,
+        hash,
+        index
+      );
+
+      assert(proposal);
+      assert.strictEqual(proposal.id, pid1);
+    }
+
+    await assert.rejects(async () => {
+      await multisigClient.getProposalByCoin(
+        WALLET_OPTIONS.id,
+        hash,
+        index
+      );
+    }, {
+      message: 'Authentication error.'
+    });
+  });
+
   it('should get proposal tx with input txs', async () => {
     const txinfo = await testWalletClient1.getProposalMTX(
       WALLET_OPTIONS.id,
@@ -720,12 +863,67 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
     );
 
     assert.strictEqual(pendingProposals.length, 0);
-    assert.strictEqual(proposals.length, 1);
+    assert.strictEqual(proposals.length, 2);
 
     assert.strictEqual(proposal.memo, 'proposal1');
     assert.strictEqual(proposal.statusCode, Proposal.status.REJECTED);
     assert.strictEqual(Object.keys(proposal.rejections).length, 1);
     assert.strictEqual(proposal.rejections[0], signature.toString('hex'));
+  });
+
+  it('should force reject proposal', async () => {
+    const txoptions = getTXOptions(5);
+    const proposalOptions = {
+      memo: 'proposal-force-reject',
+      timestamp: now(),
+      txoptions
+    };
+
+    const signature = cosignerCtx1.signProposal(CREATE, proposalOptions);
+    const proposal = await testWalletClient1.createProposal(
+      WALLET_OPTIONS.id,
+      {
+        proposal: proposalOptions,
+        signature: signature.toString('hex')
+      }
+    );
+
+    assert(proposal);
+    assert(proposal.statusCode === Proposal.status.PROGRESS);
+
+    const wid = WALLET_OPTIONS.id;
+    const pid = proposal.id;
+
+    await assert.rejects(async () => {
+      await testWalletClient1.rejectProposal(wid, pid, {
+        force: true
+      });
+    }, {
+      message: 'Status code: 403.'
+    });
+
+    const rejectEvents = Promise.all([
+      waitForBind(testWalletClient1, 'proposal rejected'),
+      waitForBind(testWalletClient2, 'proposal rejected'),
+      waitForBind(adminClient, 'proposal rejected'),
+      waitForBind(walletAdminClient, 'proposal rejected')
+    ]);
+
+    // admin can reject.
+    const rejectedProposal = await adminClient.rejectProposal(wid, pid, {
+      force: true
+    });
+
+    assert(rejectedProposal);
+    assert(rejectedProposal.statusCode === Proposal.status.FORCE);
+
+    const eventResults = await rejectEvents;
+
+    for (const [wid, result] of eventResults) {
+      assert.strictEqual(wid, WALLET_OPTIONS.id);
+      assert.deepStrictEqual(result.proposal, rejectedProposal);
+      assert.strictEqual(result.cosigner, null);
+    }
   });
 
   it('should create another proposal using same coins', async () => {
@@ -952,7 +1150,7 @@ describe(`HTTP ${WITNESS ? 'witness' : 'legacy'}`, function () {
   });
 
   it('should delete multisig wallet', async () => {
-    const id = 'test';
+    const id = WALLET_OPTIONS.id;
     const multisigWalletsBefore = await adminClient.getWallets();
     const walletsBefore = await walletAdminClient.getWallets();
     const removed = await adminClient.removeWallet(id);
@@ -997,19 +1195,6 @@ function getTXOptions(btc) {
 
 function generateAddress() {
   return KeyRing.generate(true).getAddress();
-}
-
-function waitFor(emitter, event, timeout = 1000) {
-  return new Promise((resolve, reject) => {
-    const t = setTimeout(() => {
-      reject(new Error('Timeout.'));
-    }, timeout);
-
-    emitter.once(event, (...args) => {
-      clearTimeout(t);
-      resolve(...args);
-    });
-  });
 }
 
 // TODO: remove once bcurl/bclient PRs get merged and published

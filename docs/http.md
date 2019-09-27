@@ -276,7 +276,15 @@ HTTP Response:
       "fingerPrint": 358396470,
       "data": ""
     }
-  ]
+  ],
+  "proposalStats": {
+    "lockedOwnCoins": 0,
+    "lockedOwnBalance": 0,
+    "proposals": 0,
+    "pending": 0,
+    "approved": 0,
+    "rejected": 0
+  }
 }
 ```
 
@@ -747,7 +755,7 @@ HTTP Response:
 ```
 
 #### POST /:id/proposal/:name/reject
-*Cosigner authentication.*
+*Cosigner or Admin authentication.*
 
 Reject proposal. In order to reject proposal, cosigner needs
 to sign `proposalOptions` that where used for creating proposal
@@ -769,15 +777,26 @@ Params:
 }
 ```
 
+or Admin:
+```json5
+{
+  "force": true
+}
+```
+
 ```javascript
 await client.rejectProposal(id, name, {
   signature: signature
 });
+
+// admin
+await adminClient.rejectProposal(id, name, {
+  force: true
+});
 ```
 
-HTTP Response
+HTTP Response:
 ```json5
-
 {
   "id": 0,
   "memo": "proposal1",
@@ -809,6 +828,53 @@ HTTP Response
   "n": 2,
   "statusCode": 2,
   "statusMessage": "Cosigners rejected the proposal.",
+  "cosignerDetails": {}
+}
+```
+
+#### GET /multisig/:id/proposal/coin/:hash/:index
+*Cosigner or admin auth*
+
+Get proposal by coin (UTXO hash and index).
+
+No parameters.
+
+```javascript
+await client.getProposalByCoin(id, hash, index);
+```
+
+HTTP Reponse:
+
+```json5
+{
+  "id": 1,
+  "memo": "proposal1",
+  "tx": null,
+  "author": 1,
+  "approvals": {},
+  "rejections": {},
+  "signature": "20106466afbc9d95f5f3e37290534f0cb6f6464189d24bf89b2cb40c566c3945e371045d9ab7630b20ad7548bcce0ee83c25bea954e82684cafc1772b49e768d2f",
+  "options": {
+    "memo": "proposal1",
+    "timestamp": 1565901901,
+    "txoptions": {
+      "subtractFee": true,
+      "outputs": [
+        {
+          "address": "RSuiCPBrELanmdXeLHoA6VqnHEm5XFsR7h",
+          "value": 500000000
+        }
+      ]
+    }
+  },
+  "timestamp": 1565901901,
+  "createdAt": 1565901901,
+  "rejectedAt": null,
+  "approvedAt": null,
+  "m": 2,
+  "n": 2,
+  "statusCode": 0,
+  "statusMessage": "Proposal is in progress.",
   "cosignerDetails": {}
 }
 ```
