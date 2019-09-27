@@ -14,11 +14,14 @@ const WalletNodeClient = require('../lib/walletclient');
 const MultisigWallet = require('../lib/wallet');
 const CosignerCtx = require('./util/cosigner-context');
 
+const NETWORK_NAME = 'regtest';
+const network = Network.get(NETWORK_NAME);
+
 // at this point we don't use anything from MSDB
 const TEST_MSDB = {
   db: {},
   logger: Logger.global,
-  network: Network.primary
+  network: network
 };
 
 const WALLET_OPTIONS = {
@@ -31,13 +34,16 @@ describe('MultisigWallet', function () {
   let wdb, msdb;
 
   beforeEach(async () => {
-    wdb = new WalletDB();
+    wdb = new WalletDB({
+      network: network
+    });
 
     const wdbClient = new WalletNodeClient({
       wdb
     });
 
     msdb = new MultisigDB({
+      network: network,
       client: wdbClient
     });
 
@@ -52,11 +58,13 @@ describe('MultisigWallet', function () {
 
   it('should create wallet from options', () => {
     const cosignerCtx1 = new CosignerCtx({
+      network: network,
       walletName: WALLET_OPTIONS.id,
       token: Buffer.alloc(32, 1)
     });
 
     const cosignerCtx2 = new CosignerCtx({
+      network: network,
       walletName: WALLET_OPTIONS.id,
       token: Buffer.alloc(32, 2),
       joinPrivKey: cosignerCtx1.joinPrivKey
@@ -99,11 +107,13 @@ describe('MultisigWallet', function () {
 
   it('should reserialize correctly', () => {
     const cosignerCtx1 = new CosignerCtx({
+      network: network,
       walletName: WALLET_OPTIONS.id,
       token: Buffer.alloc(32, 1)
     });
 
     const cosignerCtx2 = new CosignerCtx({
+      network: network,
       walletName: WALLET_OPTIONS.id,
       token: Buffer.alloc(32, 2),
       joinPrivKey: cosignerCtx1.joinPrivKey
@@ -137,6 +147,7 @@ describe('MultisigWallet', function () {
 
   it('should create multisig wallet', async () => {
     const cosignerCtx = new CosignerCtx({
+      network: network,
       walletName: WALLET_OPTIONS.id,
       token: Buffer.alloc(32, 3)
     });
@@ -157,11 +168,12 @@ describe('MultisigWallet', function () {
 
     assert.strictEqual(mswallet.m, account.m);
     assert.strictEqual(mswallet.n, account.n);
-    assert.strictEqual(account.accountKey.xpubkey(), cosignerCtx.xpub);
+    assert.strictEqual(account.accountKey.xpubkey(network), cosignerCtx.xpub);
   });
 
   it('should fail creating existing wallet', async () => {
     const cosignerCtx = new CosignerCtx({
+      network: network,
       walletName: WALLET_OPTIONS.id,
       name: 'cosigner1',
       token: Buffer.alloc(32, 4)
@@ -179,6 +191,7 @@ describe('MultisigWallet', function () {
 
     try {
       const cosignerCtx2 = new CosignerCtx({
+        network: network,
         walletName: WALLET_OPTIONS.id,
         name: 'cosigner2',
         master: cosignerCtx.master,
@@ -203,6 +216,7 @@ describe('MultisigWallet', function () {
 
     try {
       const cosignerCtx3 = new CosignerCtx({
+        network: network,
         walletName: WALLET_OPTIONS.id,
         name: 'cosigner2',
         master: cosignerCtx.master,
@@ -227,6 +241,7 @@ describe('MultisigWallet', function () {
 
   it('should get multisig wallet', async () => {
     const cosignerCtx = new CosignerCtx({
+      network: network,
       walletName: WALLET_OPTIONS.id,
       name: 'cosigner1'
     });
@@ -273,6 +288,7 @@ describe('MultisigWallet', function () {
     }
 
     const cosignerCtx = new CosignerCtx({
+      network: network,
       walletName: WALLET_OPTIONS.id,
       name: 'cosigner',
       token: Buffer.alloc(32, 6)
@@ -311,6 +327,7 @@ describe('MultisigWallet', function () {
 
   it('should remove multisig wallet', async () => {
     const cosignerCtx = new CosignerCtx({
+      network: network,
       walletName: WALLET_OPTIONS.id,
       name: 'cosigner1',
       token: Buffer.alloc(32, 7)
@@ -343,15 +360,18 @@ describe('MultisigWallet', function () {
   it('should join wallet with joinKey', async () => {
     const walletName = 'wallet-1of3';
     const cosignerCtx1 = new CosignerCtx({
+      network: network,
       walletName: walletName,
       name: 'cosigner1'
     });
     const cosignerCtx2 = new CosignerCtx({
+      network: network,
       walletName: walletName,
       name: 'cosigner2',
       joinPrivKey: cosignerCtx1.joinPrivKey
     });
     const cosignerCtx3 = new CosignerCtx({
+      network: network,
       walletName: walletName,
       name: 'cosigner3',
       joinPrivKey: cosignerCtx1.joinPrivKey
@@ -411,10 +431,12 @@ describe('MultisigWallet', function () {
   it('should fail joining with duplicate XPUB', async () => {
     const walletName = 'wallet-1of3';
     const cosignerCtx1 = new CosignerCtx({
+      network: network,
       walletName: walletName,
       name: 'cosigner1'
     });
     const cosignerCtx2 = new CosignerCtx({
+      network: network,
       walletName: walletName,
       name: 'cosigner2',
       joinPrivKey: cosignerCtx1.joinPrivKey
@@ -436,6 +458,7 @@ describe('MultisigWallet', function () {
     let err;
     try {
       const cosignerCtx = new CosignerCtx({
+        network: network,
         walletName: walletName,
         name: 'cosigner3',
         master: cosignerCtx1.master,
@@ -456,6 +479,7 @@ describe('MultisigWallet', function () {
 
     try {
       const cosignerCtx = new CosignerCtx({
+        network: network,
         walletName: walletName,
         name: 'cosigner3',
         master: cosignerCtx2.master,
@@ -476,15 +500,18 @@ describe('MultisigWallet', function () {
     const walletName = 'wallet-1of2';
 
     const cosignerCtx1 = new CosignerCtx({
+      network: network,
       walletName: walletName,
       name: 'cosigner1'
     });
     const cosignerCtx2 = new CosignerCtx({
+      network: network,
       walletName: walletName,
       name: 'cosigner2',
       joinPrivKey: cosignerCtx1.joinPrivKey
     });
     const cosignerCtx3 = new CosignerCtx({
+      network: network,
       walletName: walletName,
       name: 'cosigner3',
       joinPrivKey: cosignerCtx1.joinPrivKey
@@ -522,12 +549,14 @@ describe('MultisigWallet', function () {
 
   it('should authenticate user with cosignerToken', async () => {
     const cosignerCtx1 = new CosignerCtx({
+      network: network,
       walletName: WALLET_OPTIONS.id,
       name: 'cosigner1',
       token: Buffer.alloc(32, 1)
     });
 
     const cosignerCtx2 = new CosignerCtx({
+      network: network,
       walletName: WALLET_OPTIONS.id,
       name: 'cosigner2',
       token: Buffer.alloc(32, 2),
@@ -573,6 +602,7 @@ describe('MultisigWallet', function () {
     const token2 = Buffer.alloc(32, 2);
 
     const cosignerCtx = new CosignerCtx({
+      network: network,
       walletName: WALLET_OPTIONS.id,
       name: 'cosigner1',
       token: token1
@@ -607,11 +637,13 @@ describe('MultisigWallet', function () {
     // have default wallet for each test.
     beforeEach(async () => {
       const cosignerCtx1 = new CosignerCtx({
+        network: network,
         walletName: WALLET_OPTIONS.id,
         name: 'cosigner1'
       });
 
       const cosignerCtx2 = new CosignerCtx({
+        network: network,
         walletName: WALLET_OPTIONS.id,
         name: 'cosigner2',
         joinPrivKey: cosignerCtx1.joinPrivKey
@@ -633,6 +665,7 @@ describe('MultisigWallet', function () {
     it('should fail exporting uninitialized wallet', async () => {
       const wid = 'export-uninitialized';
       const cosignerCtx = new CosignerCtx({
+        network: network,
         walletName: wid,
         name: 'cosigner'
       });
