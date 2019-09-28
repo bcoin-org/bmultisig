@@ -135,14 +135,18 @@ describe('MultisigWallet', function () {
     // inject properties derived from bcoin#Wallet
     mswallet1.master = generateMaster();
 
-    const data = mswallet1.toRaw();
-    const mswallet2 = MultisigWallet.fromRaw(TEST_MSDB, data);
+    const data = mswallet1.encode();
+    const mswallet2 = MultisigWallet.decode(TEST_MSDB, data);
 
     // we don't care about wid/id/master
     mswallet1.wid = 0;
     mswallet1.id = null;
 
-    assert.deepStrictEqual(mswallet1.toJSON(0), mswallet2.toJSON(0));
+    assert.deepStrictEqual(mswallet1.getJSON({
+      accountIndex: 0
+    }), mswallet2.getJSON({
+      accountIndex: 0
+    }));
   });
 
   it('should create multisig wallet', async () => {

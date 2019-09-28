@@ -104,8 +104,8 @@ describe('Proposal', function () {
   it('should serialize to Raw and recover', () => {
     const proposal = Proposal.fromOptions(TEST_OPTIONS);
 
-    const raw = proposal.toRaw();
-    const proposal1 = Proposal.fromRaw(raw);
+    const raw = proposal.encode();
+    const proposal1 = Proposal.decode(raw);
 
     // m and n are not stored in raw serialization
     // they are assigned from wallet after recovering
@@ -233,8 +233,8 @@ describe('Proposal', function () {
 
     it('should reserialize signatures record', () => {
       const sigRecord = new SignaturesRecord();
-      const raw = sigRecord.toRaw();
-      const sigRecord2 = SignaturesRecord.fromRaw(raw);
+      const raw = sigRecord.encode();
+      const sigRecord2 = SignaturesRecord.decode(raw);
 
       assert.bufferEqual(raw, Buffer.from([0x00, 0x00]));
       assert.strictEqual(sigRecord.equals(sigRecord2), true);
@@ -255,14 +255,14 @@ describe('Proposal', function () {
         Buffer.alloc(2, 0)
       ]);
 
-      const raw = sigRecord.toRaw();
+      const raw = sigRecord.encode();
 
       assert.bufferEqual(
         raw,
         Buffer.from('02020002000001020000', 'hex')
       );
 
-      const sigRecord2 = SignaturesRecord.fromRaw(raw);
+      const sigRecord2 = SignaturesRecord.decode(raw);
       assert.strictEqual(sigRecord.equals(sigRecord2), true);
     });
 
@@ -274,14 +274,14 @@ describe('Proposal', function () {
         Buffer.alloc(5, 0)
       ]);
 
-      const raw = sigRecord.toRaw();
+      const raw = sigRecord.encode();
 
       assert.bufferEqual(
         raw,
         Buffer.from('040200010003050000000000', 'hex')
       );
 
-      const sigRecord2 = SignaturesRecord.fromRaw(raw);
+      const sigRecord2 = SignaturesRecord.decode(raw);
 
       assert.strictEqual(sigRecord.equals(sigRecord2), true);
     });
@@ -306,8 +306,8 @@ describe('Proposal', function () {
 
       assert.strictEqual(rejRecord1.size, 0);
 
-      const raw = rejRecord1.toRaw();
-      const rejRecord2 = RejectionsMapRecord.fromRaw(raw);
+      const raw = rejRecord1.encode();
+      const rejRecord2 = RejectionsMapRecord.decode(raw);
 
       assert.bufferEqual(raw, Buffer.from([0x00]));
 
@@ -317,14 +317,14 @@ describe('Proposal', function () {
 
     it('should reserialize empty record', () => {
       const rejectionsRecord = new RejectionsMapRecord();
-      const raw = rejectionsRecord.toRaw();
+      const raw = rejectionsRecord.encode();
 
       assert.bufferEqual(
         raw,
         Buffer.from([0x00])
       );
 
-      const rejectionsRecord2 = RejectionsMapRecord.fromRaw(raw);
+      const rejectionsRecord2 = RejectionsMapRecord.decode(raw);
 
       assert.strictEqual(rejectionsRecord.equals(rejectionsRecord2), true);
     });
@@ -335,7 +335,7 @@ describe('Proposal', function () {
 
       record1.set(0, signature);
 
-      const raw = record1.toRaw();
+      const raw = record1.encode();
       const json = record1.toJSON();
 
       assert.bufferEqual(
@@ -343,7 +343,7 @@ describe('Proposal', function () {
         Buffer.concat([Buffer.from('0100', 'hex'), signature])
       );
 
-      const record2 = RejectionsMapRecord.fromRaw(raw);
+      const record2 = RejectionsMapRecord.decode(raw);
       const record3 = RejectionsMapRecord.fromJSON(json);
 
       assert(record2.equals(record1));
@@ -362,9 +362,9 @@ describe('Proposal', function () {
 
       assert.strictEqual(record1.size, 4);
 
-      const raw = record1.toRaw();
+      const raw = record1.encode();
       const json1 = record1.toJSON() ;
-      const record2 = RejectionsMapRecord.fromRaw(raw);
+      const record2 = RejectionsMapRecord.decode(raw);
 
       assert(record2.equals(record1));
       assert.deepStrictEqual(json, json1);
@@ -393,14 +393,14 @@ describe('Proposal', function () {
 
     it('should reserialize empty record', () => {
       const approvedRecord = new ApprovalsMapRecord();
-      const raw = approvedRecord.toRaw();
+      const raw = approvedRecord.encode();
 
       assert.bufferEqual(
         raw,
         Buffer.from([0x00])
       );
 
-      const approvedRecord2 = ApprovalsMapRecord.fromRaw(raw);
+      const approvedRecord2 = ApprovalsMapRecord.decode(raw);
 
       assert.strictEqual(approvedRecord.equals(approvedRecord2), true);
     });
@@ -411,13 +411,13 @@ describe('Proposal', function () {
 
       approvedRecord.set(0, sigRecord);
 
-      const raw = approvedRecord.toRaw();
+      const raw = approvedRecord.encode();
       assert.bufferEqual(
         raw,
         Buffer.from('01000000', 'hex')
       );
 
-      const approvedRecord2 = ApprovalsMapRecord.fromRaw(raw);
+      const approvedRecord2 = ApprovalsMapRecord.decode(raw);
 
       assert.strictEqual(approvedRecord.equals(approvedRecord2), true);
     });
@@ -437,14 +437,14 @@ describe('Proposal', function () {
       approvedRecord1.set(0, sigRecord1);
       approvedRecord1.set(1, sigRecord2);
 
-      const raw = approvedRecord1.toRaw();
+      const raw = approvedRecord1.encode();
 
       assert.bufferEqual(
         raw,
         Buffer.from(`0200${hexSig1}01${hexSig2}`, 'hex')
       );
 
-      const approvedRecord2 = ApprovalsMapRecord.fromRaw(raw);
+      const approvedRecord2 = ApprovalsMapRecord.decode(raw);
 
       assert.strictEqual(approvedRecord1.equals(approvedRecord2), true);
     });

@@ -5,17 +5,20 @@ Bmultisig CHANGELOG and notes.
 Bmultisig will use latest version of bcoin from github.
 Add proposal stats to get general overview of the wallet proposals.
 
-**NOTE: Migration is necessary for this update.**
+**NOTE: Migration is necessary for this update, check migrate folder.** (#63)
 
-Fix:
+Fix (#63):
  - Remove locks for approved proposal when tx is seen.
 
-HTTP API Updates:
+HTTP API Updates (#63):
  - Add API Endpoint to get proposal by coin.
  - Lock coin in TXDB memory (bcoin compatible)
  - Unlock coin (TXDB or Reject proposal)
  - Add force parameter for forcefully rejecting proposals (admin only).
  - Return proposal stats when getting wallet info.
+
+Features:
+ - Add import/export of the bmultisig wallet (#61).
 
 ## 2.0.0-beta.1
 

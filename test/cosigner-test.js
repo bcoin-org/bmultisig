@@ -82,8 +82,8 @@ describe('Cosigner', function () {
   it('should reserialize correctly', () => {
     const options = TEST_OPTIONS;
     const cosigner1 = new Cosigner(options);
-    const data = cosigner1.toRaw(NETWORK);
-    const cosigner2 = Cosigner.fromRaw(data, NETWORK);
+    const data = cosigner1.encode(NETWORK);
+    const cosigner2 = Cosigner.decode(data, NETWORK);
 
     assert.deepStrictEqual(cosigner1, cosigner2);
   });
@@ -93,7 +93,7 @@ describe('Cosigner', function () {
     const expected = TEST_RAW;
 
     const cosigner = new Cosigner(options);
-    const serialized = cosigner.toRaw(NETWORK);
+    const serialized = cosigner.encode(NETWORK);
 
     assert.bufferEqual(serialized, expected,
       'Cosigner was not serialized correctly'
@@ -104,8 +104,8 @@ describe('Cosigner', function () {
     const data = TEST_RAW;
     const expected = TEST_OPTIONS;
 
-    const cosigner1 = new Cosigner().fromRaw(data);
-    const cosigner2 = Cosigner.fromRaw(data);
+    const cosigner1 = new Cosigner().decode(data);
+    const cosigner2 = Cosigner.decode(data);
 
     for (const cosigner of [cosigner1, cosigner2]) {
       assert.strictEqual(cosigner.name, expected.name,
@@ -135,7 +135,7 @@ describe('Cosigner', function () {
   it('should serialize json (details)', () => {
     const cosigner = new Cosigner(TEST_OPTIONS);
 
-    const json = cosigner.toJSON(true);
+    const json = cosigner.getJSON(true);
     const cosigner1 = Cosigner.fromJSON(json, true);
 
     assert.ok(cosigner.equals(cosigner1, true));
