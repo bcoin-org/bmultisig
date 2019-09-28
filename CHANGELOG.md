@@ -1,39 +1,31 @@
 Bmultisig CHANGELOG and notes.
 =======
 
-## 2.0.0-beta.2
+## 2.0.0-beta.1
 Bmultisig will use latest version of bcoin from github.
 Add proposal stats to get general overview of the wallet proposals.
 
 **NOTE: Migration is necessary for this update, check migrate folder.** (#63)
 
-Fix (#63):
- - Remove locks for approved proposal when tx is seen.
-
-HTTP API Updates (#63):
- - Add API Endpoint to get proposal by coin.
- - Lock coin in TXDB memory (bcoin compatible)
- - Unlock coin (TXDB or Reject proposal)
- - Add force parameter for forcefully rejecting proposals (admin only).
- - Return proposal stats when getting wallet info.
-
-Features:
- - Add import/export of the bmultisig wallet (#61).
-
-## 2.0.0-beta.1
+### Bug Fixes:
+ - Remove locks for approved proposal when tx is seen (#63).
+ - Fix deduped hashes (#53).
 
 ### API Changes
-All endpoints have updated cosigner object
-that now are all consistent with all responses.
-
-Also Cosigner meta-data (`purpose`, `fingerPrint`, and `data`)
-now always return for each cosigner.
+  - All endpoints have updated cosigner object
+that now are all consistent with all responses. (#51)
+  - Also Cosigner meta-data (`purpose`, `fingerPrint`, and `data`)
+now always return for each cosigner. (#51)
+  - Add API Endpoint to get proposal by coin (#63).
+  - Lock coin in TXDB memory (bcoin compatible) (#63)
+  - Unlock coin (TXDB or Reject proposal) (#63)
+  - Add force parameter for forcefully rejecting proposals (admin only). (#63)
+  - Return proposal stats when getting wallet info. (#63)
 
 See Docs: [HTTP API](./docs/http.md)
 
-#### Other
-node.js version check: `>=8.0.0` and `<12.0.0`.
-
+### Features:
+ - Add import/export of the bmultisig wallet (Migration) (#61).
 
 ## 2.0.0-beta
 
