@@ -81,7 +81,7 @@ async function collectProposalStats(bucket, wid) {
   const proposals = await bucket.values({
     gte: pdbLayout.p.min(),
     lte: pdbLayout.p.max(),
-    parse: raw => Proposal.fromRaw(raw)
+    parse: raw => Proposal.decode(raw)
   });
 
   proposalStats.addProposals(proposals.length);
@@ -132,7 +132,7 @@ async function updatePDB() {
     const proposalStats = await collectProposalStats(bucket, wid);
 
     console.log(`Writing proposal stats for wallet ${wid}`, proposalStats);
-    batch.put(pdbLayout.S.encode(), proposalStats.toRaw());
+    batch.put(pdbLayout.S.encode(), proposalStats.encode());
     total++;
   }
 

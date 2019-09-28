@@ -29,12 +29,12 @@ describe('Export serializations', function() {
     it('should reserialize binary', async () => {
       const cosignerJSON = data.json.cosigners[0];
       const cosigner1 = CosignerDetails.fromJSON(cosignerJSON, network);
-      const raw1 = cosigner1.toRaw(network);
+      const raw1 = cosigner1.encode(network);
 
-      const cosigner2 = CosignerDetails.fromRaw(raw1, network);
+      const cosigner2 = CosignerDetails.decode(raw1, network);
       assert.deepStrictEqual(cosigner2, cosigner1);
 
-      const raw2 = cosigner2.toRaw(network);
+      const raw2 = cosigner2.encode(network);
       assert.bufferEqual(raw2, raw1);
       assert.strictEqual(data.rawCosigner0, raw2.toString('hex'));
     });
@@ -53,11 +53,11 @@ describe('Export serializations', function() {
       const accountJSON = data.json.accounts[0];
       const account1 = AccountDetails.fromJSON(accountJSON, network);
 
-      const raw1 = account1.toRaw();
-      const account2 = AccountDetails.fromRaw(raw1);
+      const raw1 = account1.encode();
+      const account2 = AccountDetails.decode(raw1);
       assert.deepStrictEqual(account2, account1);
 
-      const raw2 = account2.toRaw();
+      const raw2 = account2.encode();
       assert.bufferEqual(raw2, raw1);
       assert.strictEqual(data.rawAccount, raw2.toString('hex'));
     });
@@ -76,11 +76,11 @@ describe('Export serializations', function() {
       const walletJSON = data.json;
       const walletRAW = data.rawWallet;
       const wallet1 = WalletDetails.fromJSON(walletJSON, network);
-      const raw1 = wallet1.toRaw(network);
+      const raw1 = wallet1.encode(network);
 
-      const wallet2 = WalletDetails.fromRaw(raw1, network);
+      const wallet2 = WalletDetails.decode(raw1, network);
       const json2 = wallet2.getJSON(network);
-      const raw2 = wallet2.toRaw(network);
+      const raw2 = wallet2.encode(network);
 
       assert.bufferEqual(raw2, raw1);
       assert.strictEqual(raw2.toString('hex'), walletRAW);
