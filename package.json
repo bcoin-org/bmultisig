@@ -9,7 +9,7 @@
     "bmultisig": "./bin/bmultisig"
   },
   "engines": {
-    "node": ">=8.0.0"
+    "node": ">=8.6.0"
   },
   "scripts": {
     "lint": "eslint lib/ test/ || exit 0",
