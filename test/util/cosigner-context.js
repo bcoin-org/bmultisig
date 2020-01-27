@@ -33,6 +33,7 @@ class CosignerContext {
     this.joinPrivKey = null;
     this.joinPubKey = null;
 
+    this._joinHash = null;
     this._joinSignature = null;
     this._xpubProof = null;
     this._cosigner = null;
@@ -147,6 +148,24 @@ class CosignerContext {
     return this.accountKey.xpubkey(this.network);
   }
 
+  get joinHash() {
+    if (!this._joinHash) {
+      assert(this.joinPrivKey != null);
+      assert(this.accountKey);
+      assert(this.name !== '');
+      assert(this.walletName !== '');
+      assert(this.authPubKey != null);
+
+      this._joinHash = sigUtils.getJoinHash(this.walletName, {
+        name: this.name,
+        authPubKey: this.authPubKey,
+        key: this.accountKey
+      }, this.network);
+    }
+
+    return this._joinHash;
+  }
+
   get joinSignature() {
     if (this._joinSignature == null) {
       assert(this.joinPrivKey != null);
@@ -155,11 +174,7 @@ class CosignerContext {
       assert(this.walletName !== '');
       assert(this.authPubKey != null);
 
-      const hash = sigUtils.getJoinHash(this.walletName, {
-        name: this.name,
-        authPubKey: this.authPubKey,
-        key: this.accountKey
-      }, this.network);
+      const hash = this.joinHash;
 
       this._joinSignature = sigUtils.signHash(hash, this.joinPrivKey);
     }
@@ -169,16 +184,13 @@ class CosignerContext {
 
   get xpubProof() {
     if (this._xpubProof == null) {
+      assert(this.joinPrivKey != null);
       assert(this.accountKey);
       assert(this.name !== '');
+      assert(this.walletName !== '');
       assert(this.authPubKey != null);
 
-      const hash = sigUtils.getJoinHash(this.walletName, {
-        name: this.name,
-        authPubKey: this.authPubKey,
-        key: this.accountKey
-      }, this.network);
-
+      const hash = this.joinHash;
       const proofHDPrivKey = this.accountPrivKey
         .derive(sigUtils.PROOF_INDEX)
         .derive(0);
@@ -266,6 +278,7 @@ class CosignerContext {
     this._cosigner = null;
     this._xpubProof = null;
     this._joinSignature = null;
+    this._joinHash = null;
   }
 
   static fromOptions(options) {
