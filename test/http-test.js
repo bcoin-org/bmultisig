@@ -17,7 +17,7 @@ const CosignerCtx = require('./util/cosigner-context');
 const {CREATE, REJECT} = Proposal.payloadType;
 
 const MultisigClient = require('../lib/client');
-const {WalletClient} = require('bclient');
+const {WalletClient} = require('bcoin/lib/client');
 const {WalletDetails} = require('../lib/export');
 
 const NETWORK_NAME = 'regtest';
