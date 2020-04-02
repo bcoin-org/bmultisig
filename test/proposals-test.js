@@ -210,6 +210,99 @@ describe(`MultisigProposals ${WITNESS ? 'witness' : 'legacy'}`, function () {
       assert.strictEqual(approved2.approvals.has(cosigner2.id), true);
     });
 
+    it('should approve proposal nested', async () => {
+      if (!WITNESS)
+        this.skip();
+
+      for (let i = 0; i < 2; i++) {
+        const account = await mswallet.getAccount();
+        const address = await account.nestedAddress();
+
+        await walletUtils.fundAddressBlock(wdb, address, 1);
+      }
+
+      const pending = await mswallet.getPendingProposals();
+      assert.strictEqual(pending.length, 0);
+
+      const proposal = await mkProposal(mswallet, cosignerCtx1, 2, 'proposal1');
+      const sigs = await signProposal(
+        mswallet,
+        proposal,
+        cosignerCtxs,
+        cosignerCtx1,
+        WITNESS
+      );
+
+      assert.strictEqual(sigs.length, 2, 'Wrong number of signatures.');
+
+      let err;
+
+      try {
+        // bad sigs
+        const sigs = [
+          Buffer.alloc(32, 0),
+          Buffer.alloc(32, 0)
+        ];
+
+        await mswallet.approveProposal(
+          proposal.id,
+          cosigner1,
+          sigs
+        );
+      } catch (e) {
+        err = e;
+      }
+
+      assert(err);
+      assert.strictEqual(err.message, 'Signature(s) incorrect.');
+
+      err = null;
+      try {
+        // bad cosigner
+        await mswallet.approveProposal(
+          proposal.id,
+          cosigner2,
+          sigs
+        );
+      } catch (e) {
+        err = e;
+      }
+
+      assert(err);
+      assert(err.message, 'Signature(s) incorrect.');
+
+      const approved = await mswallet.approveProposal(
+        proposal.id,
+        cosigner1,
+        sigs
+      );
+
+      assert.strictEqual(approved.approvals.size, 1);
+      assert.strictEqual(approved.approvals.has(cosigner1.id), true);
+
+      // approve by second cosigner
+      const sigs2 = await signProposal(
+        mswallet,
+        proposal,
+        cosignerCtxs,
+        cosignerCtx2,
+        WITNESS
+      );
+
+      const approved2 = await mswallet.approveProposal(
+        proposal.id,
+        cosigner2,
+        sigs2
+      );
+
+      const pmtx = await mswallet.getProposalMTX(proposal.id);
+      assert(pmtx.verify());
+
+      assert.strictEqual(approved2.approvals.size, 2);
+      assert.strictEqual(approved2.approvals.has(cosigner1.id), true);
+      assert.strictEqual(approved2.approvals.has(cosigner2.id), true);
+    });
+
     it('should approve proposal (2-of-3)', async () => {
       const mswallet2 = await mkWallet(msdb, TEST_WALLET_ID2, 2, 3, WITNESS, [
         cosignerCtx1,
@@ -1161,7 +1254,7 @@ async function mkProposal(wallet, cosignerCtx, btc, memo = 'proposal') {
  * @param {Number} options.pid - proposal id
  * @param {CosignerCtx} options.cosignerCtx - signer
  * @param {Boolean} options.witness
- * @returns {Buffer[]} signatures
+ * @returns {Promise<Buffer[]>} signatures
  */
 
 async function signProposal(mswallet, proposal, cosignerCtxs, cosignerCtx, witness = true) {

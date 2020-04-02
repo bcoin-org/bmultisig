@@ -10,7 +10,7 @@ const {hd} = require('bcoin');
 const secp256k1 = require('bcrypto/lib/secp256k1');
 const sigUtils = require('../lib/utils/sig');
 
-const privKey = secp256k1.generatePrivateKey();
+const privKey = secp256k1.privateKeyGenerate();
 
 // commonly used test case
 const NETWORK = 'main';
