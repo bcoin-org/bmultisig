@@ -1,6 +1,6 @@
 {
   "name": "bmultisig",
-  "version": "2.0.0-beta.1",
+  "version": "2.0.0-beta.2",
   "description": "Bcoin wallet plugin for multi signature transaction proposals",
   "repository": "git://github.com/bcoin-org/bmultisig.git",
   "homepage": "https://github.com/bcoin-org/bmultisig",
