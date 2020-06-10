@@ -768,7 +768,7 @@ describe(`MultisigProposals ${WITNESS ? 'witness' : 'legacy'}`, function () {
       }
 
       const tx = await mswallet.getProposalTX(proposal.id);
-      await wdb.addTX(tx, -1);
+      await wdb.addTX(tx);
 
       await forEvent(mswallet, 'unlocked coin', 2000);
       await sleep(100);
@@ -1036,7 +1036,7 @@ describe(`MultisigProposals ${WITNESS ? 'witness' : 'legacy'}`, function () {
 
       // now we broadcast the transaction
       const tx = await mswallet.getProposalTX(proposal.id);
-      await wdb.addTX(tx, -1);
+      await wdb.addTX(tx);
       await sleep(100);
 
       {

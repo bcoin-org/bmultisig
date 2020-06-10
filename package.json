@@ -29,7 +29,7 @@
   "author": "bcoin",
   "license": "MIT",
   "dependencies": {
-    "bcoin": "git+https://github.com/bcoin-org/bcoin#semver:^2.0.0",
+    "bcoin": "git+https://github.com/bcoin-org/bcoin#semver:^2.1.2",
     "bcfg": "git+https://github.com/bcoin-org/bcfg.git#semver:^0.1.6",
     "bcrypto": "git+https://github.com/bcoin-org/bcrypto#semver:~5.0.4",
     "bcurl": "git+https://github.com/bcoin-org/bcurl#semver:~v0.1.6",
@@ -44,7 +44,8 @@
     "bufio": "git+https://github.com/bcoin-org/bufio#semver:^1.0.6",
     "bval": "git+https://github.com/bcoin-org/bval#semver:^0.1.6",
     "bweb": "git+https://github.com/bcoin-org/bweb#semver:^0.1.9",
-    "loady": "git+https://github.com/chjj/loady#semver:~0.0.1"
+    "loady": "git+https://github.com/chjj/loady#semver:~0.0.1",
+    "nan": "git+https://github.com/braydonf/nan.git#semver:=2.14.0"
   },
   "devDependencies": {
     "bmocha": "git+https://github.com/bcoin-org/bmocha#semver:^2.1.2"
